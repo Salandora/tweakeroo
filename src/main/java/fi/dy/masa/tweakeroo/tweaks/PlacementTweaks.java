@@ -16,6 +16,7 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.BlockItemUseContext;
 import net.minecraft.item.Item;
@@ -46,7 +47,6 @@ public class PlacementTweaks
     private static EnumFacing sideFirst = null;
     private static EnumFacing sideRotatedFirst = null;
     private static float playerYawFirst;
-    private static ItemStack stackFirst = ItemStack.EMPTY;
     private static ItemStack[] stackBeforeUse = new ItemStack[] { ItemStack.EMPTY, ItemStack.EMPTY };
     private static boolean isFirstClick;
     private static boolean isEmulatedClick;
@@ -255,6 +255,12 @@ public class PlacementTweaks
         HitPart hitPart = getHitPart(sideIn, playerFacingH, posIn, hitVec);
         EnumFacing sideRotated = getRotatedFacing(sideIn, playerFacingH, hitPart);
 
+        if (FeatureToggle.TWEAK_HAND_RESTOCK.getBooleanValue() && stackPre.isEmpty() == false)
+        {
+            //System.out.printf("onProcessRightClickBlock storing stack: %s\n", stackPre);
+            stackBeforeUse[hand.ordinal()] = stackPre.copy();
+        }
+
         if (FeatureToggle.TWEAK_PLACEMENT_REST_FIRST.getBooleanValue() && stateClickedOn == null)
         {
             IBlockState state = world.getBlockState(posIn);
@@ -291,7 +297,7 @@ public class PlacementTweaks
             sideFirst = sideIn;
             sideRotatedFirst = sideRotated;
             playerYawFirst = player.rotationYaw;
-            stackFirst = stackPre;
+            stackBeforeUse[hand.ordinal()] = stackPre;
             //System.out.printf("plop store @ %s\n", posFirst);
         }
 
@@ -369,6 +375,13 @@ public class PlacementTweaks
                 facing = sideIn;
                 hitPart = null;
                 handle = true;
+
+                // Pistons, Droppers, Dispensers should face into the block, but Observers should point their back/output
+                // side into the block when the Accurate Placement In hotkey is used
+                if ((stack.getItem() instanceof ItemBlock) == false || ((ItemBlock) stack.getItem()).getBlock() != Blocks.OBSERVER)
+                {
+                    facing = facing.getOpposite();
+                }
                 //System.out.printf("accurate - IN - facing: %s\n", facing);
             }
             else if (flexible == false || (rotation == false && offset == false))
@@ -529,7 +542,7 @@ public class PlacementTweaks
             Vec3d hitVec,
             EnumHand hand)
     {
-        //System.out.printf("processRightClickBlockWrapper() start @ %s, side: %s\n", pos, side);
+        //System.out.printf("processRightClickBlockWrapper() start @ %s, side: %s, hand: %s\n", pos, side, hand);
         if (FeatureToggle.TWEAK_PLACEMENT_LIMIT.getBooleanValue() &&
             placementCount >= Configs.Generic.PLACEMENT_LIMIT.getIntegerValue())
         {
@@ -538,7 +551,7 @@ public class PlacementTweaks
 
         // We need to grab the stack here if the cached stack is still empty,
         // because this code runs before the cached stack gets set on the first click/use.
-        ItemStack stackOriginal = stackFirst.isEmpty() == false && FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false ? stackFirst : player.getHeldItem(hand).copy();
+        ItemStack stackOriginal = stackBeforeUse[hand.ordinal()].isEmpty() == false && FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false ? stackBeforeUse[hand.ordinal()] : player.getHeldItem(hand).copy();
         BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stackOriginal, pos, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
         BlockPos posPlacement = getPlacementPositionForTargetedPosition(world, pos, side, ctx);
         IBlockState stateBefore = world.getBlockState(posPlacement);
@@ -708,7 +721,6 @@ public class PlacementTweaks
         hitVecFirst = null;
         sideFirst = null;
         sideRotatedFirst = null;
-        stackFirst = ItemStack.EMPTY;
         firstWasRotation = false;
         firstWasOffset = false;
         isFirstClick = true;
@@ -836,11 +848,12 @@ public class PlacementTweaks
         {
             switch (mode)
             {
-                case PLANE:     return isNewPositionValidForPlaneMode(pos);
-                case FACE:      return isNewPositionValidForFaceMode(pos, side);
                 case COLUMN:    return isNewPositionValidForColumnMode(pos);
-                case LINE:      return isNewPositionValidForLineMode(pos);
                 case DIAGONAL:  return isNewPositionValidForDiagonalMode(pos);
+                case FACE:      return isNewPositionValidForFaceMode(pos, side);
+                case LAYER:     return isNewPositionValidForLayerMode(pos);
+                case LINE:      return isNewPositionValidForLineMode(pos);
+                case PLANE:     return isNewPositionValidForPlaneMode(pos);
                 default:        return true;
             }
         }
@@ -887,26 +900,6 @@ public class PlacementTweaks
         return state.isReplaceable(useContext) || state.getMaterial().isLiquid() || state.getMaterial().isReplaceable();
     }
 
-    private static boolean isNewPositionValidForPlaneMode(BlockPos posNew)
-    {
-        EnumFacing.Axis axis = sideFirst.getAxis();
-
-        switch (axis)
-        {
-            case X: return posNew.getX() == posFirst.getX();
-            case Y: return posNew.getY() == posFirst.getY();
-            case Z: return posNew.getZ() == posFirst.getZ();
-
-            default:
-                return false;
-        }
-    }
-
-    private static boolean isNewPositionValidForFaceMode(BlockPos posNew, EnumFacing side)
-    {
-        return side == sideFirst;
-    }
-
     private static boolean isNewPositionValidForColumnMode(BlockPos posNew)
     {
         EnumFacing.Axis axis = sideFirst.getAxis();
@@ -920,6 +913,32 @@ public class PlacementTweaks
             default:
                 return false;
         }
+    }
+
+    private static boolean isNewPositionValidForDiagonalMode(BlockPos posNew)
+    {
+        EnumFacing.Axis axis = sideFirst.getAxis();
+        BlockPos relativePos = posNew.subtract(posFirst);
+
+        switch (axis)
+        {
+            case X: return posNew.getX() == posFirst.getX() && Math.abs(relativePos.getY()) == Math.abs(relativePos.getZ());
+            case Y: return posNew.getY() == posFirst.getY() && Math.abs(relativePos.getX()) == Math.abs(relativePos.getZ());
+            case Z: return posNew.getZ() == posFirst.getZ() && Math.abs(relativePos.getX()) == Math.abs(relativePos.getY());
+
+            default:
+                return false;
+        }
+    }
+
+    private static boolean isNewPositionValidForFaceMode(BlockPos posNew, EnumFacing side)
+    {
+        return side == sideFirst;
+    }
+
+    private static boolean isNewPositionValidForLayerMode(BlockPos posNew)
+    {
+        return posNew.getY() == posFirst.getY();
     }
 
     private static boolean isNewPositionValidForLineMode(BlockPos posNew)
@@ -937,16 +956,15 @@ public class PlacementTweaks
         }
     }
 
-    private static boolean isNewPositionValidForDiagonalMode(BlockPos posNew)
+    private static boolean isNewPositionValidForPlaneMode(BlockPos posNew)
     {
         EnumFacing.Axis axis = sideFirst.getAxis();
-        BlockPos relativePos = posNew.subtract(posFirst);
 
         switch (axis)
         {
-            case X: return posNew.getX() == posFirst.getX() && Math.abs(relativePos.getY()) == Math.abs(relativePos.getZ());
-            case Y: return posNew.getY() == posFirst.getY() && Math.abs(relativePos.getX()) == Math.abs(relativePos.getZ());
-            case Z: return posNew.getZ() == posFirst.getZ() && Math.abs(relativePos.getX()) == Math.abs(relativePos.getY());
+            case X: return posNew.getX() == posFirst.getX();
+            case Y: return posNew.getY() == posFirst.getY();
+            case Z: return posNew.getZ() == posFirst.getZ();
 
             default:
                 return false;

@@ -3,6 +3,7 @@ package fi.dy.masa.tweakeroo.util;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import fi.dy.masa.malilib.util.Constants;
 import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.tweakeroo.Tweakeroo;
 import fi.dy.masa.tweakeroo.config.Configs;
@@ -10,7 +11,6 @@ import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import fi.dy.masa.tweakeroo.mixin.IMixinSlot;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -22,6 +22,7 @@ import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -87,7 +88,7 @@ public class InventoryUtils
         if (FeatureToggle.TWEAK_SWAP_ALMOST_BROKEN_TOOLS.getBooleanValue())
         {
             Minecraft mc = Minecraft.getInstance();
-            EntityPlayerSP player = mc.player;
+            EntityPlayer player = mc.player;
 
             for (EnumHand hand : EnumHand.values())
             {
@@ -101,6 +102,28 @@ public class InventoryUtils
                     {
                         swapItemWithHigherDurabilityToHand(player, hand, stack, minDurability);
                     }
+                }
+            }
+        }
+    }
+
+    public static void trySwitchToEffectiveTool(BlockPos pos)
+    {
+        if (FeatureToggle.TWEAK_TOOL_SWITCH.getBooleanValue())
+        {
+            Minecraft mc = Minecraft.getInstance();
+            EntityPlayer player = mc.player;
+            IBlockState state = mc.world.getBlockState(pos);
+            ItemStack stack = player.getHeldItemMainhand();
+
+            if (stack.isEmpty() || stack.getDestroySpeed(state) <= 1f)
+            {
+                Container container = player.inventoryContainer;
+                int slotNumber = findSlotWithEffectiveItemWithDurabilityLeft(container, state);
+
+                if (slotNumber != -1)
+                {
+                    swapItemToHand(player, EnumHand.MAIN_HAND, slotNumber);
                 }
             }
         }
@@ -150,13 +173,17 @@ public class InventoryUtils
 
         for (Slot slot : container.inventorySlots)
         {
-            ItemStack stack = slot.getStack();
+            if (slot.slotNumber <= 8)
             {
-                if (slot.slotNumber > 8 && stack.isEmpty() == false && stack.getItem().isDamageable() == false)
-                {
-                    slotWithItem = slot.slotNumber;
-                    break;
-                }
+                continue;
+            }
+
+            ItemStack stack = slot.getStack();
+
+            if (stack.isEmpty() == false && stack.getItem().isDamageable() == false)
+            {
+                slotWithItem = slot.slotNumber;
+                break;
             }
         }
 
@@ -288,7 +315,7 @@ public class InventoryUtils
             ItemStack stackSlot = slot.getStack();
 
             if (stackSlot.isItemEqualIgnoreDurability(stackReference) &&
-                stackReference.getMaxDamage() - stackSlot.getDamage() > minDurabilityLeft &&
+                stackSlot.getMaxDamage() - stackSlot.getDamage() > minDurabilityLeft &&
                 ItemStack.areItemStackTagsEqual(stackSlot, stackReference))
             {
                 return slot.slotNumber;
@@ -296,6 +323,42 @@ public class InventoryUtils
         }
 
         return -1;
+    }
+
+    private static int findSlotWithEffectiveItemWithDurabilityLeft(Container container, IBlockState state)
+    {
+        int slotNum = -1;
+        float bestSpeed = -1f;
+
+        for (Slot slot : container.inventorySlots)
+        {
+            // Don't consider armor and crafting slots
+            if (slot.slotNumber <= 8 || slot.getHasStack() == false)
+            {
+                continue;
+            }
+
+            ItemStack stack = slot.getStack();
+
+            if (stack.getMaxDamage() - stack.getItemDamage() > getMinDurability(stack))
+            {
+                float speed = stack.getDestroySpeed(state);
+                int effLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack);
+
+                if (effLevel > 0)
+                {
+                    speed += (effLevel * effLevel) + 1;
+                }
+
+                if (speed > 1f && (slotNum == -1 || speed > bestSpeed))
+                {
+                    slotNum = slot.slotNumber;
+                    bestSpeed = speed;
+                }
+            }
+        }
+
+        return slotNum;
     }
 
     private static void tryCombineStacksInInventory(EntityPlayer player, ItemStack stackReference)
@@ -433,5 +496,39 @@ public class InventoryUtils
                 }
             }
         }
+    }
+
+    public static boolean cleanUpShulkerBoxNBT(ItemStack stack)
+    {
+        boolean changed = false;
+        NBTTagCompound nbt = stack.getTagCompound();
+
+        if (nbt != null)
+        {
+            if (nbt.hasKey("BlockEntityTag", Constants.NBT.TAG_COMPOUND))
+            {
+                NBTTagCompound tag = nbt.getCompoundTag("BlockEntityTag");
+
+                if (tag.hasKey("Items", Constants.NBT.TAG_LIST) &&
+                    tag.getTagList("Items", Constants.NBT.TAG_COMPOUND).tagCount() == 0)
+                {
+                    tag.removeTag("Items");
+                    changed = true;
+                }
+
+                if (tag.isEmpty())
+                {
+                    nbt.removeTag("BlockEntityTag");
+                }
+            }
+
+            if (nbt.isEmpty())
+            {
+                stack.setTagCompound(null);
+                changed = true;
+            }
+        }
+
+        return changed;
     }
 }

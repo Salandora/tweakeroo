@@ -5,8 +5,10 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
+import fi.dy.masa.tweakeroo.tweaks.MiscTweaks;
 import fi.dy.masa.tweakeroo.tweaks.PlacementTweaks;
 import fi.dy.masa.tweakeroo.util.IMinecraftAccessor;
 import net.minecraft.client.Minecraft;
@@ -109,5 +111,14 @@ public abstract class MixinMinecraft implements IMinecraftAccessor
         {
             KeyBinding.setKeyBindState(((IMixinKeyBinding) mc.gameSettings.keyBindUseItem).getInput(), true);
         }
+    }
+
+    @Inject(method = "runTick",
+            slice = @Slice(
+                    from = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;runTickKeyboard()V")),
+            at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;world:Lnet/minecraft/client/multiplayer/WorldClient;", ordinal = 0))
+    private void onRunTick(CallbackInfo ci)
+    {
+        MiscTweaks.onTick((Minecraft) (Object) this);
     }
 }
