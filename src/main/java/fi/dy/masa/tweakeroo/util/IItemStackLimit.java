@@ -5,4 +5,6 @@ import net.minecraft.item.ItemStack;
 public interface IItemStackLimit
 {
     int getMaxStackSize(ItemStack stack);
+
+    void setMaxStackSize(int value);
 }

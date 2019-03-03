@@ -8,12 +8,18 @@ import fi.dy.masa.malilib.interfaces.IValueChangeCallback;
 import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.tweakeroo.gui.GuiConfigs;
 import fi.dy.masa.tweakeroo.mixin.IMixinBlock;
+import fi.dy.masa.tweakeroo.util.IItemStackLimit;
 import fi.dy.masa.tweakeroo.util.InventoryUtils;
 import fi.dy.masa.tweakeroo.util.PlacementRestrictionMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.IRegistry;
 import net.minecraft.util.text.TextFormatting;
+
+import java.util.Arrays;
 
 public class Callbacks
 {
@@ -50,6 +56,12 @@ public class Callbacks
         FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getKeybind().setCallback(new KeyCallbackToggleOnRelease(FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE));
         FeatureToggle.TWEAK_PLACEMENT_GRID.getKeybind().setCallback(new KeyCallbackToggleOnRelease(FeatureToggle.TWEAK_PLACEMENT_GRID));
         FeatureToggle.TWEAK_PLACEMENT_LIMIT.getKeybind().setCallback(new KeyCallbackToggleOnRelease(FeatureToggle.TWEAK_PLACEMENT_LIMIT));
+
+        FeatureToggle.TWEAK_POTION_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_POTION_STACKING, new String[] { "potion", "lingering_potion", "splash_potion" }, 1, 64));
+        FeatureToggle.TWEAK_MINECART_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_MINECART_STACKING, new String[] { "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart" }, 1, 16));
+        FeatureToggle.TWEAK_FILLED_BUCKETS_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_FILLED_BUCKETS_STACKING, new String[] { "lava_bucket", "water_bucket" }, 1, 64));
+        FeatureToggle.TWEAK_MORE_EMPTY_BUCKETS.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_MORE_EMPTY_BUCKETS, new String[] { "bucket" }, 16, 64));
+        FeatureToggle.TWEAK_MORE_ENDER_PEARLS.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_MORE_ENDER_PEARLS, new String[] { "ender_pearl" }, 16, 64));
     }
 
     public static class FeatureCallbackGamma implements IValueChangeCallback
@@ -116,6 +128,33 @@ public class Callbacks
             {
                 ((IMixinBlock) Blocks.SLIME_BLOCK).setSlipperiness((float) Configs.Internal.SLIME_BLOCK_SLIPPERINESS_ORIGINAL.getDoubleValue());
             }
+        }
+    }
+
+    public static class FeatureCallbackMaxStackSize implements IValueChangeCallback
+    {
+        private final Item[] items;
+        private final FeatureToggle feature;
+        private final int defValue;
+        private final int newValue;
+
+        public FeatureCallbackMaxStackSize(FeatureToggle feature, String[] item_ids, int defValue, int newValue) {
+            this.feature = feature;
+            this.defValue = defValue;
+            this.newValue = newValue;
+
+            this.items = new Item[item_ids.length];
+            for (int i=0; i< item_ids.length; ++i)
+            {
+                this.items[i] = IRegistry.ITEM.get(new ResourceLocation(item_ids[i]));
+            }
+        }
+
+
+        @Override
+        public void onValueChanged(IConfigBase config) {
+            int value = feature.getBooleanValue() ? newValue : defValue;
+            Arrays.stream(items).forEach((i) -> ((IItemStackLimit)i).setMaxStackSize(value));
         }
     }
 
