@@ -7,7 +7,7 @@ import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.client.util.InputMappings;
 
 @Mixin(KeyBinding.class)
-public abstract class MixinKeyBinding implements IKeyBinding
+public abstract class MixinKeyBinding  implements Comparable<KeyBinding>, IKeyBinding
 {
     @Accessor("keyCode")
     public abstract InputMappings.Input getInput();

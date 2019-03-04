@@ -1,6 +1,7 @@
 package fi.dy.masa.tweakeroo.event;
 
 import com.google.common.collect.ImmutableList;
+import fi.dy.masa.malilib.config.options.ConfigDouble;
 import fi.dy.masa.malilib.hotkeys.IHotkey;
 import fi.dy.masa.malilib.hotkeys.IKeybindManager;
 import fi.dy.masa.malilib.hotkeys.IKeybindProvider;
@@ -132,6 +133,19 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
 
                 return true;
             }
+            else if (FeatureToggle.TWEAK_FLY_SPEED.getKeybind().isKeybindHeld())
+            {
+                ConfigDouble config = Configs.getActiveFlySpeedConfig();
+                double newValue = config.getDoubleValue() + (dWheel > 0 ? 0.005 : -0.005);
+                config.setDoubleValue(newValue);
+                Callbacks.KeyCallbackToggleOnRelease.setValueChanged();
+
+                String strIndex = preGreen + (Configs.Internal.FLY_SPEED_PRESET.getIntegerValue() + 1) + rst;
+                String strValue = preGreen + String.format("%.3f", config.getDoubleValue()) + rst;
+                mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_fly_speed_to", strIndex, strValue));
+
+                return true;
+            }
             else if (FeatureToggle.TWEAK_AFTER_CLICKER.getKeybind().isKeybindHeld())
             {
                 int newValue = Configs.Generic.AFTER_CLICKER_CLICK_COUNT.getIntegerValue() + (dWheel > 0 ? 1 : -1);
@@ -173,6 +187,17 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
 
                 String strValue = preGreen + Integer.valueOf(Configs.Generic.PLACEMENT_GRID_SIZE.getIntegerValue()) + rst;
                 mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_placement_grid_size_to", strValue));
+
+                return true;
+            }
+            else if (FeatureToggle.TWEAK_ZOOM.getKeybind().isKeybindHeld())
+            {
+                double newValue = Configs.Generic.ZOOM_FOV.getDoubleValue() + (dWheel > 0 ? 1 : -1);
+                Configs.Generic.ZOOM_FOV.setDoubleValue(newValue);
+                Callbacks.KeyCallbackToggleOnRelease.setValueChanged();
+
+                String strValue = String.format("%s%.1f%s", preGreen, Configs.Generic.ZOOM_FOV.getDoubleValue(), rst);
+                mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_zoom_fov_to", strValue));
 
                 return true;
             }
