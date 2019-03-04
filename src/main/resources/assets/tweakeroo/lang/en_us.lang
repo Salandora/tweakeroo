@@ -16,10 +16,6 @@ tweakeroo.gui.title.configs=Tweakeroo Configs
 tweakeroo.hotkeys.category.generic_hotkeys=Generic hotkeys
 tweakeroo.hotkeys.category.tweak_toggle_hotkeys=Tweak toggle hotkeys
 
-tweakeroo.label.list_type.blacklist=Black List
-tweakeroo.label.list_type.none=None
-tweakeroo.label.list_type.whitelist=White List
-
 tweakeroo.label.placement_restriction_mode.column=Column
 tweakeroo.label.placement_restriction_mode.diagonal=Diagonal
 tweakeroo.label.placement_restriction_mode.face=Face
@@ -28,7 +24,7 @@ tweakeroo.label.placement_restriction_mode.line=Line
 tweakeroo.label.placement_restriction_mode.plane=Plane
 
 tweakeroo.message.potion_effects_running_out=§6!! WARNING - %s potion effect(s) about to run out in %s seconds !!§r
-tweakeroo.message.repair_mode.swapped_repairable_item_to_hand=Swapped a repairable item to hand
+tweakeroo.message.repair_mode.swapped_repairable_item_to_slot=Swapped a repairable item to %s slot
 tweakeroo.message.set_after_clicker_count_to=Set After Clicker count to %s
 tweakeroo.message.set_fly_speed_preset_to=Switched to fly speed preset %s (speed: %s)
 tweakeroo.message.set_fly_speed_to=Set fly speed of preset %s to %s
@@ -37,6 +33,7 @@ tweakeroo.message.set_placement_grid_size_to=Set Placement Grid size to %s
 tweakeroo.message.set_placement_limit_to=Set Placement Limit to %s
 tweakeroo.message.set_placement_restriction_mode_to=Set Placement Restriction mode to %s
 tweakeroo.message.set_zoom_fov_to=Set zoom FOV to %s
+tweakeroo.message.sign_text_copied=Sign text copied
 tweakeroo.message.swapped_low_durability_item_for_better_durability=Swapped a low durability item for one with more durability
 tweakeroo.message.swapped_low_durability_item_for_dummy_item=Swapped a low durability item for a dummy item
 tweakeroo.message.swapped_low_durability_item_off_players_hand=Swapped a low durability item off the player's hand

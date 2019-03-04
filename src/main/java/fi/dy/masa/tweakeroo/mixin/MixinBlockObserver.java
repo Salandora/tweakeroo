@@ -5,28 +5,21 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
-import net.minecraft.block.Block;
+import net.minecraft.block.BlockDirectional;
 import net.minecraft.block.BlockObserver;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.IWorld;
 
-@Mixin(BlockObserver.class)
-public abstract class MixinBlockObserver
+@Mixin(value = BlockObserver.class, priority = 1001)
+public abstract class MixinBlockObserver extends BlockDirectional
 {
-    @Inject(method = "onBlockAdded", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/block/BlockObserver;startSignal(" +
-            "Lnet/minecraft/block/state/IBlockState;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)V"), cancellable = true)
-    private void preventPlacementTrigger(World worldIn, BlockPos pos, IBlockState state, CallbackInfo ci)
+    public MixinBlockObserver(Properties propertiesIn)
     {
-        if (FeatureToggle.TWEAK_OBSERVER_PLACE_NO_UPDATE.getBooleanValue() || FeatureToggle.TWEAK_OBSERVER_DISABLE.getBooleanValue())
-        {
-            ci.cancel();
-        }
+        super(propertiesIn);
     }
 
-    @Inject(method = "observedNeighborChanged", at = @At("HEAD"), cancellable = true)
-    private void preventTriggering(IBlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, CallbackInfo ci)
+    @Inject(method = "startSignal", at = @At("HEAD"), cancellable = true)
+    private void preventTrigger(IWorld worldIn, BlockPos pos, CallbackInfo ci)
     {
         if (FeatureToggle.TWEAK_OBSERVER_DISABLE.getBooleanValue())
         {

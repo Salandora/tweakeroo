@@ -6,9 +6,11 @@ import net.minecraft.block.BlockRedstoneComparator;
 import net.minecraft.block.BlockRedstoneRepeater;
 import net.minecraft.block.BlockStairs;
 import net.minecraft.block.BlockTrapDoor;
-import net.minecraft.block.properties.PropertyDirection;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.state.IProperty;
+import net.minecraft.state.properties.ComparatorMode;
+import net.minecraft.state.properties.Half;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
@@ -22,12 +24,12 @@ public class PlacementHandler
         IBlockState state = stateIn;
         Vec3d hitVec = context.getHitVec();
         Block block = stateIn.getBlock();
-        @Nullable PropertyDirection property = fi.dy.masa.malilib.util.BlockUtils.getFirstDirectionProperty(stateIn);
+        @Nullable IProperty<EnumFacing> property = fi.dy.masa.malilib.util.BlockUtils.getFirstDirectionProperty(stateIn);
         int x = (int) hitVec.x % 10;
 
         if (x >= 2 && property != null)
         {
-            EnumFacing facingOrig = stateIn.getValue(property);
+            EnumFacing facingOrig = stateIn.get(property);
             EnumFacing facing = facingOrig;
             int facingIndex = x - 2;
 
@@ -49,7 +51,7 @@ public class PlacementHandler
 
             if (facing != facingOrig && property.getAllowedValues().contains(facing))
             {
-                state = state.withProperty(property, facing);
+                state = state.with(property, facing);
             }
         }
 
@@ -61,7 +63,7 @@ public class PlacementHandler
 
                 if (BlockRedstoneRepeater.DELAY.getAllowedValues().contains(delay))
                 {
-                    state = state.withProperty(BlockRedstoneRepeater.DELAY, delay);
+                    state = state.with(BlockRedstoneRepeater.DELAY, delay);
                 }
             }
         }
@@ -69,21 +71,21 @@ public class PlacementHandler
         {
             if (x >= 10)
             {
-                state = state.withProperty(BlockRedstoneComparator.MODE, BlockRedstoneComparator.Mode.SUBTRACT);
+                state = state.with(BlockRedstoneComparator.MODE, ComparatorMode.SUBTRACT);
             }
         }
         else if (block instanceof BlockTrapDoor)
         {
             if (x >= 10)
             {
-                state = state.withProperty(BlockTrapDoor.HALF, BlockTrapDoor.DoorHalf.TOP);
+                state = state.with(BlockTrapDoor.HALF, Half.TOP);
             }
         }
-        else if (block instanceof BlockStairs && state.getValue(BlockStairs.HALF) == BlockStairs.EnumHalf.TOP)
+        else if (block instanceof BlockStairs && state.get(BlockStairs.HALF) == Half.TOP)
         {
             if (x >= 10)
             {
-                state = state.withProperty(BlockStairs.HALF, BlockStairs.EnumHalf.TOP);
+                state = state.with(BlockStairs.HALF, Half.TOP);
             }
         }
 

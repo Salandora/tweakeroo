@@ -18,7 +18,6 @@ import net.minecraft.client.resources.I18n;
 public class GuiConfigs extends GuiConfigsBase
 {
     private static ConfigGuiTab tab = ConfigGuiTab.TWEAK_TOGGLES;
-    private int id;
 
     public GuiConfigs()
     {
@@ -33,32 +32,22 @@ public class GuiConfigs extends GuiConfigsBase
         super.initGui();
         this.clearOptions();
 
-        this.id = 0;
         int x = 10;
         int y = 26;
 
         for (ConfigGuiTab tab : ConfigGuiTab.values())
         {
-            x += this.createButton(x, y, -1, tab) + 4;
+            x += this.createButton(x, y, -1, tab);
         }
     }
 
     private int createButton(int x, int y, int width, ConfigGuiTab tab)
     {
-        ButtonListener listener = new ButtonListener(tab, this);
-        boolean enabled = GuiConfigs.tab != tab;
-        String label = tab.getDisplayName();
+        ButtonGeneric button = new ButtonGeneric(x, y, width, 20, tab.getDisplayName());
+        button.enabled = GuiConfigs.tab != tab;
+        this.addButton(button, new ButtonListener(tab, this));
 
-        if (width < 0)
-        {
-            width = this.mc.fontRenderer.getStringWidth(label) + 10;
-        }
-
-        ButtonGeneric button = new ButtonGeneric(this.id++, x, y, width, 20, label);
-        button.enabled = enabled;
-        this.addButton(button, listener);
-
-        return width;
+        return button.getWidth() + 2;
     }
 
     @Override
@@ -76,6 +65,12 @@ public class GuiConfigs extends GuiConfigsBase
         }
 
         return super.getConfigWidth();
+    }
+
+    @Override
+    protected boolean useKeybindSearch()
+    {
+        return GuiConfigs.tab == ConfigGuiTab.TWEAK_HOTKEYS || GuiConfigs.tab == ConfigGuiTab.GENERIC_HOTKEYS;
     }
 
     @Override

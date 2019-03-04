@@ -1,5 +1,6 @@
 package fi.dy.masa.tweakeroo.mixin;
 
+import net.minecraft.entity.EntityType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,7 +25,7 @@ public abstract class MixinEntityItem extends Entity implements IEntityItem
 
     public MixinEntityItem(World worldIn)
     {
-        super(worldIn);
+        super(EntityType.ITEM, worldIn);
     }
 
     @Override
@@ -73,7 +74,7 @@ public abstract class MixinEntityItem extends Entity implements IEntityItem
 
                 if (amount >= stackOther.getCount())
                 {
-                    other.setDead();
+                    other.remove();
                 }
                 else
                 {

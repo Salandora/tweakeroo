@@ -13,12 +13,12 @@ import net.minecraft.world.World;
 public abstract class MixinMobSpawnerBaseLogic
 {
     @Shadow
-    public abstract World getSpawnerWorld();
+    public abstract World getWorld();
 
-    @Inject(method = "updateSpawner", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     private void cancelParticleRendering(CallbackInfo ci)
     {
-        if (FeatureToggle.TWEAK_NO_MOB_SPAWNER_MOB_RENDER.getBooleanValue() && this.getSpawnerWorld().isRemote)
+        if (FeatureToggle.TWEAK_NO_MOB_SPAWNER_MOB_RENDER.getBooleanValue() && this.getWorld().isRemote)
         {
             ci.cancel();
         }

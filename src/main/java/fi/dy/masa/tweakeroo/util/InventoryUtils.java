@@ -3,8 +3,9 @@ package fi.dy.masa.tweakeroo.util;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import javax.annotation.Nullable;
 import fi.dy.masa.malilib.util.Constants;
-import fi.dy.masa.malilib.util.StringUtils;
+import fi.dy.masa.malilib.util.InfoUtils;
 import fi.dy.masa.tweakeroo.Tweakeroo;
 import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
@@ -19,6 +20,7 @@ import net.minecraft.init.Items;
 import net.minecraft.inventory.ClickType;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.ContainerPlayer;
+import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -36,6 +38,8 @@ import net.minecraft.world.World;
 
 public class InventoryUtils
 {
+    private static final List<EntityEquipmentSlot> REPAIR_MODE_SLOTS = new ArrayList<>();
+    private static final List<Integer> REPAIR_MODE_SLOT_NUMBES = new ArrayList<>();
     private static final HashSet<Item> UNSTACKING_ITEMS = new HashSet<>();
 
     public static void setUnstackingItems(List<String> names)
@@ -58,6 +62,92 @@ public class InventoryUtils
                 Tweakeroo.logger.warn("Failed to set an unstacking protected item from name '{}'", name, e);
             }
         }
+    }
+
+    public static void setRepairModeSlots(List<String> names)
+    {
+        REPAIR_MODE_SLOTS.clear();
+        REPAIR_MODE_SLOT_NUMBES.clear();
+
+        for (String name : names)
+        {
+            EntityEquipmentSlot type = null;
+
+            switch (name)
+            {
+                case "mainhand":    type = EntityEquipmentSlot.MAINHAND; break;
+                case "offhand":     type = EntityEquipmentSlot.OFFHAND; break;
+                case "head":        type = EntityEquipmentSlot.HEAD; break;
+                case "chest":       type = EntityEquipmentSlot.CHEST; break;
+                case "legs":        type = EntityEquipmentSlot.LEGS; break;
+                case "feet":        type = EntityEquipmentSlot.FEET; break;
+            }
+
+            if (type != null)
+            {
+                REPAIR_MODE_SLOTS.add(type);
+                REPAIR_MODE_SLOT_NUMBES.add(getSlotNumberForEquipmentType(type, null));
+            }
+        }
+    }
+
+    private static boolean isConfiguredRepairSlot(int slotNum, EntityPlayer player)
+    {
+        if (REPAIR_MODE_SLOTS.contains(EntityEquipmentSlot.MAINHAND) &&
+            (slotNum - 36) == player.inventory.currentItem)
+        {
+            return true;
+        }
+
+        return REPAIR_MODE_SLOT_NUMBES.contains(slotNum);
+    }
+
+    /**
+     * Returns the equipment type for the given slot number,
+     * assuming that the slot number is for the player's main inventory container
+     * @param slotNum
+     * @return
+     */
+    @Nullable
+    private static EntityEquipmentSlot getEquipmentTypeForSlot(int slotNum, EntityPlayer player)
+    {
+        if (REPAIR_MODE_SLOTS.contains(EntityEquipmentSlot.MAINHAND) &&
+            (slotNum - 36) == player.inventory.currentItem)
+        {
+            return EntityEquipmentSlot.MAINHAND;
+        }
+
+        switch (slotNum)
+        {
+            case 45: return EntityEquipmentSlot.OFFHAND;
+            case  5: return EntityEquipmentSlot.HEAD;
+            case  6: return EntityEquipmentSlot.CHEST;
+            case  7: return EntityEquipmentSlot.LEGS;
+            case  8: return EntityEquipmentSlot.FEET;
+        }
+
+        return null;
+    }
+
+    /**
+     * Returns the slot number for the given equipment type
+     * in the player's inventory container
+     * @param type
+     * @return
+     */
+    private static int getSlotNumberForEquipmentType(EntityEquipmentSlot type, @Nullable EntityPlayer player)
+    {
+        switch (type)
+        {
+            case MAINHAND:  return player != null ? player.inventory.currentItem + 36 : -1;
+            case OFFHAND:   return 45;
+            case HEAD:      return 5;
+            case CHEST:     return 6;
+            case LEGS:      return 7;
+            case FEET:      return 8;
+        }
+
+        return -1;
     }
 
     public static void swapHotbarWithInventoryRow(EntityPlayer player, int row)
@@ -151,7 +241,7 @@ public class InventoryUtils
     private static void swapItemWithHigherDurabilityToHand(EntityPlayer player, EnumHand hand, ItemStack stackReference, int minDurabilityLeft)
     {
         Minecraft mc = Minecraft.getInstance();
-        int slotWithItem = findSlotWithIdenticalItemWithDurabilityLeft(player.inventoryContainer, stackReference, minDurabilityLeft);
+        int slotWithItem = findSlotWithSuitableReplacementToolWithDurabilityLeft(player.inventoryContainer, stackReference, minDurabilityLeft);
 
         if (slotWithItem != -1)
         {
@@ -196,44 +286,53 @@ public class InventoryUtils
 
     public static void repairModeSwapItems(EntityPlayer player)
     {
-        if (player.openContainer instanceof ContainerPlayer)
+        if (player.openContainer == player.inventoryContainer)
         {
-            repairModeHandleHand(player, EnumHand.MAIN_HAND);
-            repairModeHandleHand(player, EnumHand.OFF_HAND);
-        }
-    }
-
-    private static void repairModeHandleHand(EntityPlayer player, EnumHand hand)
-    {
-        ItemStack stackHand = player.getHeldItem(hand);
-
-        if (stackHand.isEmpty() == false &&
-            (stackHand.isDamageable() == false ||
-             stackHand.isDamaged() == false ||
-             EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, stackHand) <= 0))
-        {
-            int slotNumber = findRepairableItemNotInHand(player);
-
-            if (slotNumber != -1)
+            for (EntityEquipmentSlot type : REPAIR_MODE_SLOTS)
             {
-                swapItemToHand(player, hand, slotNumber);
-                StringUtils.printActionbarMessage("tweakeroo.message.repair_mode.swapped_repairable_item_to_hand");
+                repairModeHandleSlot(player, type);
             }
         }
     }
 
-    private static int findRepairableItemNotInHand(EntityPlayer player)
+    private static void repairModeHandleSlot(EntityPlayer player, EntityEquipmentSlot type)
+    {
+        int slotNum = getSlotNumberForEquipmentType(type, player);
+
+        if (slotNum == -1)
+        {
+            return;
+        }
+
+        ItemStack stack = player.getItemStackFromSlot(type);
+
+        if (stack.isEmpty() == false &&
+            (stack.isDamageable() == false ||
+             stack.isDamaged() == false ||
+             EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, stack) <= 0))
+        {
+            Slot slot = player.openContainer.getSlot(slotNum);
+            int slotRepairableItem = findRepairableItemNotInRepairableSlot(slot, player);
+
+            if (slotRepairableItem != -1)
+            {
+                swapItemToEqupmentSlot(player, type, slotRepairableItem);
+                InfoUtils.printActionbarMessage("tweakeroo.message.repair_mode.swapped_repairable_item_to_slot", type.getName());
+            }
+        }
+    }
+
+    private static int findRepairableItemNotInRepairableSlot(Slot targetSlot, EntityPlayer player)
     {
         Container containerPlayer = player.openContainer;
-        int slotHand = player.inventory.currentItem;
 
         for (Slot slot : containerPlayer.inventorySlots)
         {
-            if (slot.slotNumber != slotHand && slot.getHasStack())
+            if (slot.getHasStack() && isConfiguredRepairSlot(slot.slotNumber, player) == false)
             {
                 ItemStack stack = slot.getStack();
 
-                if (stack.isDamageable() && stack.isDamaged() &&
+                if (stack.isDamageable() && stack.isDamaged() && targetSlot.isItemValid(stack) &&
                     EnchantmentHelper.getEnchantmentLevel(Enchantments.MENDING, stack) > 0)
                 {
                     return slot.slotNumber;
@@ -308,7 +407,46 @@ public class InventoryUtils
         }
     }
 
-    private static int findSlotWithIdenticalItemWithDurabilityLeft(Container container, ItemStack stackReference, int minDurabilityLeft)
+    private static void swapItemToEqupmentSlot(EntityPlayer player, EntityEquipmentSlot type, int sourceSlotNumber)
+    {
+        if (sourceSlotNumber != -1 && player.openContainer == player.inventoryContainer)
+        {
+            Minecraft mc = Minecraft.getInstance();
+            Container container = player.inventoryContainer;
+
+            if (type == EntityEquipmentSlot.MAINHAND)
+            {
+                int currentHotbarSlot = player.inventory.currentItem;
+                mc.playerController.windowClick(container.windowId, sourceSlotNumber, currentHotbarSlot, ClickType.SWAP, mc.player);
+            }
+            else if (type == EntityEquipmentSlot.OFFHAND)
+            {
+                // Use a hotbar slot that isn't the current slot
+                int tempSlot = (player.inventory.currentItem + 1) % 9;
+                // Swap the requested slot to the current hotbar slot
+                mc.playerController.windowClick(container.windowId, sourceSlotNumber, tempSlot, ClickType.SWAP, mc.player);
+
+                // Swap the requested item from the hotbar slot to the offhand
+                mc.playerController.windowClick(container.windowId, 45, tempSlot, ClickType.SWAP, mc.player);
+
+                // Swap the original item back to the hotbar slot
+                mc.playerController.windowClick(container.windowId, sourceSlotNumber, tempSlot, ClickType.SWAP, mc.player);
+            }
+            // Armor slots
+            else
+            {
+                int armorSlot = getSlotNumberForEquipmentType(type, player);
+                // Pick up the new item
+                mc.playerController.windowClick(container.windowId, sourceSlotNumber, 0, ClickType.PICKUP, mc.player);
+                // Swap it to the armor slot
+                mc.playerController.windowClick(container.windowId, armorSlot, 0, ClickType.PICKUP, mc.player);
+                // Place down the old armor item
+                mc.playerController.windowClick(container.windowId, sourceSlotNumber, 0, ClickType.PICKUP, mc.player);
+            }
+        }
+    }
+
+    private static int findSlotWithSuitableReplacementToolWithDurabilityLeft(Container container, ItemStack stackReference, int minDurabilityLeft)
     {
         for (Slot slot : container.inventorySlots)
         {
@@ -316,13 +454,32 @@ public class InventoryUtils
 
             if (stackSlot.isItemEqualIgnoreDurability(stackReference) &&
                 stackSlot.getMaxDamage() - stackSlot.getDamage() > minDurabilityLeft &&
-                ItemStack.areItemStackTagsEqual(stackSlot, stackReference))
+                hasSameIshEnchantments(stackReference, stackSlot))
             {
                 return slot.slotNumber;
             }
         }
 
         return -1;
+    }
+
+    private static boolean hasSameIshEnchantments(ItemStack stackReference, ItemStack stack)
+    {
+        int level = EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, stackReference);
+
+        if (level > 0)
+        {
+            return EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, stack) >= level;
+        }
+
+        level = EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, stackReference);
+
+        if (level > 0)
+        {
+            return EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, stack) >= level;
+        }
+
+        return true;
     }
 
     private static int findSlotWithEffectiveItemWithDurabilityLeft(Container container, IBlockState state)
@@ -340,7 +497,7 @@ public class InventoryUtils
 
             ItemStack stack = slot.getStack();
 
-            if (stack.getMaxDamage() - stack.getItemDamage() > getMinDurability(stack))
+            if (stack.getMaxDamage() - stack.getDamage() > getMinDurability(stack))
             {
                 float speed = stack.getDestroySpeed(state);
                 int effLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack);
@@ -501,30 +658,30 @@ public class InventoryUtils
     public static boolean cleanUpShulkerBoxNBT(ItemStack stack)
     {
         boolean changed = false;
-        NBTTagCompound nbt = stack.getTagCompound();
+        NBTTagCompound nbt = stack.getTag();
 
         if (nbt != null)
         {
-            if (nbt.hasKey("BlockEntityTag", Constants.NBT.TAG_COMPOUND))
+            if (nbt.contains("BlockEntityTag", Constants.NBT.TAG_COMPOUND))
             {
-                NBTTagCompound tag = nbt.getCompoundTag("BlockEntityTag");
+                NBTTagCompound tag = nbt.getCompound("BlockEntityTag");
 
-                if (tag.hasKey("Items", Constants.NBT.TAG_LIST) &&
-                    tag.getTagList("Items", Constants.NBT.TAG_COMPOUND).tagCount() == 0)
+                if (tag.contains("Items", Constants.NBT.TAG_LIST) &&
+                    tag.getList("Items", Constants.NBT.TAG_COMPOUND).size() == 0)
                 {
-                    tag.removeTag("Items");
+                    tag.remove("Items");
                     changed = true;
                 }
 
                 if (tag.isEmpty())
                 {
-                    nbt.removeTag("BlockEntityTag");
+                    nbt.remove("BlockEntityTag");
                 }
             }
 
             if (nbt.isEmpty())
             {
-                stack.setTagCompound(null);
+                stack.setTag(null);
                 changed = true;
             }
         }

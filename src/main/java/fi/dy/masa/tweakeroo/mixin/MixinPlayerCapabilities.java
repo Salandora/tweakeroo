@@ -16,8 +16,8 @@ public abstract class MixinPlayerCapabilities
     private void overrideFlySpeed(CallbackInfoReturnable<Float> cir)
     {
         if (FeatureToggle.TWEAK_FLY_SPEED.getBooleanValue() &&
-            Minecraft.getMinecraft().player != null &&
-            Minecraft.getMinecraft().player.capabilities.allowFlying)
+            Minecraft.getInstance().player != null &&
+            Minecraft.getInstance().player.abilities.allowFlying)
         {
             cir.setReturnValue((float) Configs.getActiveFlySpeedConfig().getDoubleValue());
             cir.cancel();

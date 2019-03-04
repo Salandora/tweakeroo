@@ -1,5 +1,6 @@
 package fi.dy.masa.tweakeroo.mixin;
 
+import fi.dy.masa.tweakeroo.util.IKeyBinding;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -104,21 +105,12 @@ public abstract class MixinMinecraft implements IMinecraftAccessor
 
         if (FeatureToggle.TWEAK_HOLD_ATTACK.getBooleanValue() && mc.currentScreen == null)
         {
-            KeyBinding.setKeyBindState(((IMixinKeyBinding) mc.gameSettings.keyBindAttack).getInput(), true);
+            KeyBinding.setKeyBindState(((IKeyBinding) mc.gameSettings.keyBindAttack).getInput(), true);
         }
 
         if (FeatureToggle.TWEAK_HOLD_USE.getBooleanValue() && mc.currentScreen == null)
         {
-            KeyBinding.setKeyBindState(((IMixinKeyBinding) mc.gameSettings.keyBindUseItem).getInput(), true);
+            KeyBinding.setKeyBindState(((IKeyBinding) mc.gameSettings.keyBindUseItem).getInput(), true);
         }
-    }
-
-    @Inject(method = "runTick",
-            slice = @Slice(
-                    from = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;runTickKeyboard()V")),
-            at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;world:Lnet/minecraft/client/multiplayer/WorldClient;", ordinal = 0))
-    private void onRunTick(CallbackInfo ci)
-    {
-        MiscTweaks.onTick((Minecraft) (Object) this);
     }
 }
