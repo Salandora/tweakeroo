@@ -1,6 +1,6 @@
 package fi.dy.masa.tweakeroo.config;
 
-import fi.dy.masa.malilib.config.IConfigBase;
+import fi.dy.masa.malilib.config.IConfigBoolean;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.hotkeys.IHotkeyCallback;
 import fi.dy.masa.malilib.hotkeys.IKeybind;
@@ -67,15 +67,13 @@ public class Callbacks
         FeatureToggle.TWEAK_ZOOM.getKeybind().setCallback(new KeyCallbackToggleOnRelease(FeatureToggle.TWEAK_ZOOM));
     }
 
-    public static class FeatureCallbackGamma implements IValueChangeCallback
+    public static class FeatureCallbackGamma implements IValueChangeCallback<IConfigBoolean>
     {
         private final Minecraft mc;
-        private final FeatureToggle feature;
 
         public FeatureCallbackGamma(FeatureToggle feature, Minecraft mc)
         {
             this.mc = mc;
-            this.feature = feature;
 
             if (this.mc.gameSettings.gammaSetting <= 1.0F)
             {
@@ -90,9 +88,9 @@ public class Callbacks
         }
 
         @Override
-        public void onValueChanged(IConfigBase config)
+        public void onValueChanged(IConfigBoolean config)
         {
-            if (this.feature.getBooleanValue())
+            if (config.getBooleanValue())
             {
                 Configs.Internal.GAMMA_VALUE_ORIGINAL.setDoubleValue(this.mc.gameSettings.gammaSetting);
                 this.mc.gameSettings.gammaSetting = Configs.Generic.GAMMA_OVERRIDE_VALUE.getIntegerValue();
@@ -104,13 +102,10 @@ public class Callbacks
         }
     }
 
-    public static class FeatureCallbackSlime implements IValueChangeCallback
+    public static class FeatureCallbackSlime implements IValueChangeCallback<IConfigBoolean>
     {
-        private final FeatureToggle feature;
-
         public FeatureCallbackSlime(FeatureToggle feature)
         {
-            this.feature = feature;
             Configs.Internal.SLIME_BLOCK_SLIPPERINESS_ORIGINAL.setDoubleValue(Blocks.SLIME_BLOCK.getSlipperiness());
 
             // If the feature is enabled on game launch, apply the overridden value here
@@ -121,9 +116,9 @@ public class Callbacks
         }
 
         @Override
-        public void onValueChanged(IConfigBase config)
+        public void onValueChanged(IConfigBoolean config)
         {
-            if (this.feature.getBooleanValue())
+            if (config.getBooleanValue())
             {
                 ((IMixinBlock) Blocks.SLIME_BLOCK).setSlipperiness(Blocks.STONE.getSlipperiness());
             }
@@ -134,14 +129,14 @@ public class Callbacks
         }
     }
 
-    public static class FeatureCallbackSpecial implements IValueChangeCallback
+    public static class FeatureCallbackSpecial implements IValueChangeCallback<IConfigBoolean>
     {
         public FeatureCallbackSpecial()
         {
         }
 
         @Override
-        public void onValueChanged(IConfigBase config)
+        public void onValueChanged(IConfigBoolean config)
         {
             if (Configs.Generic.PLACEMENT_RESTRICTION_TIED_TO_FAST.getBooleanValue())
             {
