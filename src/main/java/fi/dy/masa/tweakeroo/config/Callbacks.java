@@ -1,6 +1,6 @@
 package fi.dy.masa.tweakeroo.config;
 
-import fi.dy.masa.malilib.config.IConfigBase;
+import fi.dy.masa.malilib.config.IConfigBoolean;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.hotkeys.IHotkeyCallback;
 import fi.dy.masa.malilib.hotkeys.IKeybind;
@@ -73,22 +73,20 @@ public class Callbacks
         FeatureToggle.TWEAK_PLACEMENT_LIMIT.getKeybind().setCallback(new KeyCallbackToggleOnRelease(FeatureToggle.TWEAK_PLACEMENT_LIMIT));
         FeatureToggle.TWEAK_ZOOM.getKeybind().setCallback(new KeyCallbackToggleOnRelease(FeatureToggle.TWEAK_ZOOM));
 
-        FeatureToggle.TWEAK_POTION_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_POTION_STACKING, new String[] { "potion", "lingering_potion", "splash_potion" }, 1, 64));
-        FeatureToggle.TWEAK_MINECART_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_MINECART_STACKING, new String[] { "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart" }, 1, 16));
-        FeatureToggle.TWEAK_FILLED_BUCKETS_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_FILLED_BUCKETS_STACKING, new String[] { "lava_bucket", "water_bucket" }, 1, 64));
-        FeatureToggle.TWEAK_MORE_EMPTY_BUCKETS.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_MORE_EMPTY_BUCKETS, new String[] { "bucket" }, 16, 64));
-        FeatureToggle.TWEAK_MORE_ENDER_PEARLS.setValueChangeCallback(new FeatureCallbackMaxStackSize(FeatureToggle.TWEAK_MORE_ENDER_PEARLS, new String[] { "ender_pearl" }, 16, 64));
+        FeatureToggle.TWEAK_POTION_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "potion", "lingering_potion", "splash_potion" }, 1, 64));
+        FeatureToggle.TWEAK_MINECART_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart" }, 1, 16));
+        FeatureToggle.TWEAK_FILLED_BUCKETS_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "lava_bucket", "water_bucket" }, 1, 64));
+        FeatureToggle.TWEAK_MORE_EMPTY_BUCKETS.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "bucket" }, 16, 64));
+        FeatureToggle.TWEAK_MORE_ENDER_PEARLS.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "ender_pearl" }, 16, 64));
     }
 
-    public static class FeatureCallbackGamma implements IValueChangeCallback
+    public static class FeatureCallbackGamma implements IValueChangeCallback<IConfigBoolean>
     {
         private final Minecraft mc;
-        private final FeatureToggle feature;
 
         public FeatureCallbackGamma(FeatureToggle feature, Minecraft mc)
         {
             this.mc = mc;
-            this.feature = feature;
 
             if (this.mc.gameSettings.gammaSetting <= 1.0F)
             {
@@ -103,9 +101,9 @@ public class Callbacks
         }
 
         @Override
-        public void onValueChanged(IConfigBase config)
+        public void onValueChanged(IConfigBoolean config)
         {
-            if (this.feature.getBooleanValue())
+            if (config.getBooleanValue())
             {
                 Configs.Internal.GAMMA_VALUE_ORIGINAL.setDoubleValue(this.mc.gameSettings.gammaSetting);
                 this.mc.gameSettings.gammaSetting = Configs.Generic.GAMMA_OVERRIDE_VALUE.getIntegerValue();
@@ -117,13 +115,10 @@ public class Callbacks
         }
     }
 
-    public static class FeatureCallbackSlime implements IValueChangeCallback
+    public static class FeatureCallbackSlime implements IValueChangeCallback<IConfigBoolean>
     {
-        private final FeatureToggle feature;
-
         public FeatureCallbackSlime(FeatureToggle feature)
         {
-            this.feature = feature;
             Configs.Internal.SLIME_BLOCK_SLIPPERINESS_ORIGINAL.setDoubleValue(Blocks.SLIME_BLOCK.getSlipperiness());
 
             // If the feature is enabled on game launch, apply the overridden value here
@@ -134,9 +129,9 @@ public class Callbacks
         }
 
         @Override
-        public void onValueChanged(IConfigBase config)
+        public void onValueChanged(IConfigBoolean config)
         {
-            if (this.feature.getBooleanValue())
+            if (config.getBooleanValue())
             {
                 ((IMixinBlock) Blocks.SLIME_BLOCK).setSlipperiness(Blocks.STONE.getSlipperiness());
             }
@@ -147,15 +142,13 @@ public class Callbacks
         }
     }
 
-    public static class FeatureCallbackMaxStackSize implements IValueChangeCallback
+    public static class FeatureCallbackMaxStackSize implements IValueChangeCallback<IConfigBoolean>
     {
         private final Item[] items;
-        private final FeatureToggle feature;
         private final int defValue;
         private final int newValue;
 
-        public FeatureCallbackMaxStackSize(FeatureToggle feature, String[] item_ids, int defValue, int newValue) {
-            this.feature = feature;
+        public FeatureCallbackMaxStackSize(String[] item_ids, int defValue, int newValue) {
             this.defValue = defValue;
             this.newValue = newValue;
 
@@ -168,20 +161,20 @@ public class Callbacks
 
 
         @Override
-        public void onValueChanged(IConfigBase config) {
-            int value = feature.getBooleanValue() ? newValue : defValue;
+        public void onValueChanged(IConfigBoolean config) {
+            int value = config.getBooleanValue() ? newValue : defValue;
             Arrays.stream(items).forEach((i) -> ((IItemStackLimit)i).setMaxStackSize(value));
         }
     }
 
-    public static class FeatureCallbackSpecial implements IValueChangeCallback
+    public static class FeatureCallbackSpecial implements IValueChangeCallback<IConfigBoolean>
     {
         public FeatureCallbackSpecial()
         {
         }
 
         @Override
-        public void onValueChanged(IConfigBase config)
+        public void onValueChanged(IConfigBoolean config)
         {
             if (Configs.Generic.PLACEMENT_RESTRICTION_TIED_TO_FAST.getBooleanValue())
             {
