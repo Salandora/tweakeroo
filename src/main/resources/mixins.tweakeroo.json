@@ -23,6 +23,7 @@
         "MixinFogRenderer",
         "MixinGameRenderer",
         "MixinGlStateManager",
+        "MixinGuiChat",
         "MixinGuiEditSign",
         "MixinGuiIngame",
         "MixinGuiNewChat",

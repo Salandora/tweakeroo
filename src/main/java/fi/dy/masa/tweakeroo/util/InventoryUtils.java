@@ -382,7 +382,7 @@ public class InventoryUtils
 
     private static void swapItemToHand(EntityPlayer player, EnumHand hand, int slotNumber)
     {
-        if (slotNumber != -1)
+        if (slotNumber != -1 && player.openContainer == player.inventoryContainer)
         {
             Minecraft mc = Minecraft.getInstance();
             Container container = player.inventoryContainer;
