@@ -140,7 +140,7 @@ public class GuiConfigs extends GuiConfigsBase
             }
             else
             {
-                //Minecraft.getMinecraft().displayGuiScreen(new GuiPlacementSettings());
+                //Minecraft.getInstance().displayGuiScreen(new GuiPlacementSettings());
             }
         }
     }
