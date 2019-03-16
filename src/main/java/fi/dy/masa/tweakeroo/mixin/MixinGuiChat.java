@@ -53,7 +53,7 @@ public abstract class MixinGuiChat
     }
 
     @Inject(method = "keyPressed(III)Z",
-            slice = @Slice(from = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiScreen;sendChatMessage(Ljava/lang/String;)V")),
+            slice = @Slice(from = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiChat;sendChatMessage(Ljava/lang/String;)V")),
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;displayGuiScreen(Lnet/minecraft/client/gui/GuiScreen;)V", shift = Shift.AFTER))
     private void onSendMessage(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> ci)
     {
