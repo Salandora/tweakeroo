@@ -1,6 +1,5 @@
 package fi.dy.masa.tweakeroo.mixin;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;

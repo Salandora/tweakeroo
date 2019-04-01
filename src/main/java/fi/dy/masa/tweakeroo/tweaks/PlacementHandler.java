@@ -25,13 +25,13 @@ public class PlacementHandler
         Vec3d hitVec = context.getHitVec();
         Block block = stateIn.getBlock();
         @Nullable IProperty<EnumFacing> property = fi.dy.masa.malilib.util.BlockUtils.getFirstDirectionProperty(stateIn);
-        int x = (int) hitVec.x % 10;
+        int x = (int) hitVec.x;
 
         if (x >= 2 && property != null)
         {
             EnumFacing facingOrig = stateIn.get(property);
             EnumFacing facing = facingOrig;
-            int facingIndex = x - 2;
+            int facingIndex = (x % 10) - 2;
 
             if (facingIndex == 6) // the opposite of the normal facing requested
             {

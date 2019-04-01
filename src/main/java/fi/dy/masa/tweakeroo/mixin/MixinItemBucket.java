@@ -16,7 +16,8 @@ public abstract class MixinItemBucket extends Item {
     }
 
     /**
-     * @author
+     * @author Me
+     * @reason I want to
      */
     @Overwrite
     protected ItemStack emptyBucket(ItemStack itemstack, EntityPlayer player)
