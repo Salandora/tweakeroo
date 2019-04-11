@@ -25,6 +25,7 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.play.client.CPacketHeldItemChange;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
@@ -390,7 +391,17 @@ public class InventoryUtils
             if (hand == EnumHand.MAIN_HAND)
             {
                 int currentHotbarSlot = player.inventory.currentItem;
-                mc.playerController.windowClick(container.windowId, slotNumber, currentHotbarSlot, ClickType.SWAP, mc.player);
+                Slot slot = container.getSlot(slotNumber);
+
+                if (slot != null && isHotbarSlot(slot))
+                {
+                    player.inventory.currentItem = slotNumber - 36;
+                    mc.getConnection().sendPacket(new CPacketHeldItemChange(player.inventory.currentItem));
+                }
+                else
+                {
+                    mc.playerController.windowClick(container.windowId, slotNumber, currentHotbarSlot, ClickType.SWAP, mc.player);
+                }
             }
             else if (hand == EnumHand.OFF_HAND)
             {
@@ -500,11 +511,15 @@ public class InventoryUtils
             if (stack.getMaxDamage() - stack.getDamage() > getMinDurability(stack))
             {
                 float speed = stack.getDestroySpeed(state);
-                int effLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack);
 
-                if (effLevel > 0)
+                if (speed > 1.0f)
                 {
-                    speed += (effLevel * effLevel) + 1;
+                    int effLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.EFFICIENCY, stack);
+
+                    if (effLevel > 0)
+                    {
+                        speed += (effLevel * effLevel) + 1;
+                    }
                 }
 
                 if (speed > 1f && (slotNum == -1 || speed > bestSpeed))

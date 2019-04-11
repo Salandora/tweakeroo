@@ -15,6 +15,8 @@ import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import fi.dy.masa.tweakeroo.config.Hotkeys;
 import net.minecraft.client.GameSettings;
 import net.minecraft.client.Minecraft;
+import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -93,15 +95,21 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
             {
                 EnumFacing facing = PositionUtils.getClosestLookingDirection(mc.player).getOpposite();
                 Vec3d hitVec = PositionUtils.getHitVecCenter(posFront, facing);
+                ItemStack stack = mc.player.getHeldItemMainhand();
 
-                EnumActionResult result = mc.playerController.processRightClickBlock(mc.player, mc.world, posFront, facing, hitVec, EnumHand.MAIN_HAND);
-
-                if (result != EnumActionResult.SUCCESS)
+                if (stack.isEmpty() == false && stack.getItem() instanceof ItemBlock)
                 {
-                    mc.playerController.processRightClickBlock(mc.player, mc.world, posFront, facing, hitVec, EnumHand.OFF_HAND);
+                    mc.playerController.processRightClickBlock(mc.player, mc.world, posFront, facing, hitVec, EnumHand.MAIN_HAND);
+                    return true;
                 }
 
-                return true;
+                stack = mc.player.getHeldItemOffhand();
+
+                if (stack.isEmpty() == false && stack.getItem() instanceof ItemBlock)
+                {
+                    mc.playerController.processRightClickBlock(mc.player, mc.world, posFront, facing, hitVec, EnumHand.OFF_HAND);
+                    return true;
+                }
             }
         }
 
