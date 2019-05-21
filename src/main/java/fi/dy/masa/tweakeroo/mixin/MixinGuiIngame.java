@@ -22,4 +22,12 @@ public abstract class MixinGuiIngame extends Gui
             ci.cancel();
         }
     }
+
+    @Inject(method = "renderPumpkinOverlay", at = @At(value="HEAD"), cancellable = true)
+    private void overridePumpkinOverlay(CallbackInfo ci) {
+        if (FeatureToggle.TWEAK_NO_PUMPKIN_OVERLAY.getBooleanValue())
+        {
+            ci.cancel();
+        }
+    }
 }

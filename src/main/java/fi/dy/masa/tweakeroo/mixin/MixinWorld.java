@@ -1,7 +1,9 @@
 package fi.dy.masa.tweakeroo.mixin;
 
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -40,7 +42,7 @@ public abstract class MixinWorld
         {
             if (this.tileEntitiesToBeRemoved.isEmpty() == false)
             {
-                HashSet<TileEntity> remove = new HashSet<>();
+                Set<TileEntity> remove = Collections.newSetFromMap(new IdentityHashMap<>());
                 remove.addAll(this.tileEntitiesToBeRemoved);
                 this.tickableTileEntities.removeAll(remove);
                 this.loadedTileEntityList.removeAll(remove);
