@@ -14,6 +14,7 @@ import fi.dy.masa.tweakeroo.util.IItemStackLimit;
 import fi.dy.masa.tweakeroo.util.InventoryUtils;
 import fi.dy.masa.tweakeroo.util.MiscUtils;
 import fi.dy.masa.tweakeroo.util.PlacementRestrictionMode;
+import fi.dy.masa.tweakeroo.util.SnapAimMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.KeyBinding;
@@ -71,8 +72,10 @@ public class Callbacks
         FeatureToggle.TWEAK_AFTER_CLICKER.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_AFTER_CLICKER));
         FeatureToggle.TWEAK_FLY_SPEED.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_FLY_SPEED));
         FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE));
+        FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER));
         FeatureToggle.TWEAK_PLACEMENT_GRID.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_PLACEMENT_GRID));
         FeatureToggle.TWEAK_PLACEMENT_LIMIT.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_PLACEMENT_LIMIT));
+        FeatureToggle.TWEAK_SNAP_AIM.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_SNAP_AIM));
         FeatureToggle.TWEAK_ZOOM.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_ZOOM));
 
         FeatureToggle.TWEAK_POTION_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "potion", "lingering_potion", "splash_potion" }, 1, 64));
@@ -161,7 +164,6 @@ public class Callbacks
             }
         }
 
-
         @Override
         public void onValueChanged(IConfigBoolean config) {
             int value = config.getBooleanValue() ? newValue : defValue;
@@ -238,7 +240,7 @@ public class Callbacks
         {
             if (key == Hotkeys.TOOL_PICK.getKeybind())
             {
-                if (this.mc.objectMouseOver.type == RayTraceResult.Type.BLOCK)
+                if (this.mc.objectMouseOver != null && this.mc.objectMouseOver.type == RayTraceResult.Type.BLOCK)
                 {
                     InventoryUtils.trySwitchToEffectiveTool(this.mc.objectMouseOver.getBlockPos());
                     return true;
@@ -490,12 +492,52 @@ public class Callbacks
                     InfoUtils.printActionbarMessage("tweakeroo.message.toggled", prettyName, strStatus);
                 }
             }
+            else if (key == FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER.getKeybind())
+            {
+                if (enabled)
+                {
+                    String strValue = Configs.Generic.HOTBAR_SLOT_RANDOMIZER_MAX.getStringValue();
+                    InfoUtils.printActionbarMessage("tweakeroo.message.toggled_slot_randomizer_on", strStatus, preGreen + strValue + rst);
+                }
+                else
+                {
+                    InfoUtils.printActionbarMessage("tweakeroo.message.toggled", prettyName, strStatus);
+                }
+            }
             else if (key == FeatureToggle.TWEAK_PLACEMENT_GRID.getKeybind())
             {
                 if (enabled)
                 {
                     String strValue = Configs.Generic.PLACEMENT_GRID_SIZE.getStringValue();
                     InfoUtils.printActionbarMessage("tweakeroo.message.toggled_placement_grid_on", strStatus, preGreen + strValue + rst);
+                }
+                else
+                {
+                    InfoUtils.printActionbarMessage("tweakeroo.message.toggled", prettyName, strStatus);
+                }
+            }
+            else if (key == FeatureToggle.TWEAK_SNAP_AIM.getKeybind())
+            {
+                if (enabled)
+                {
+                    SnapAimMode mode = (SnapAimMode) Configs.Generic.SNAP_AIM_MODE.getOptionListValue();
+
+                    if (mode == SnapAimMode.YAW)
+                    {
+                        String yaw = String.valueOf(Configs.Generic.SNAP_AIM_YAW_STEP.getDoubleValue());
+                        InfoUtils.printActionbarMessage("tweakeroo.message.toggled_snap_aim_on_yaw", strStatus, preGreen + yaw + rst);
+                    }
+                    else if (mode == SnapAimMode.PITCH)
+                    {
+                        String pitch = String.valueOf(Configs.Generic.SNAP_AIM_PITCH_STEP.getDoubleValue());
+                        InfoUtils.printActionbarMessage("tweakeroo.message.toggled_snap_aim_on_pitch", strStatus, preGreen + pitch + rst);
+                    }
+                    else
+                    {
+                        String yaw = String.valueOf(Configs.Generic.SNAP_AIM_YAW_STEP.getDoubleValue());
+                        String pitch = String.valueOf(Configs.Generic.SNAP_AIM_PITCH_STEP.getDoubleValue());
+                        InfoUtils.printActionbarMessage("tweakeroo.message.toggled_snap_aim_on_both", strStatus, preGreen + yaw + rst, preGreen + pitch + rst);
+                    }
                 }
                 else
                 {

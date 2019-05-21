@@ -113,11 +113,8 @@ public class PlacementTweaks
 
     public static void onProcessRightClickPost(EntityPlayer player, EnumHand hand)
     {
-        if (FeatureToggle.TWEAK_HAND_RESTOCK.getBooleanValue())
-        {
-            //System.out.printf("onProcessRightClickPost -> tryRestockHand with: %s, current: %s\n", stackBeforeUse[hand.ordinal()], player.getHeldItem(hand));
-            tryRestockHand(player, hand, stackBeforeUse[hand.ordinal()]);
-        }
+        //System.out.printf("onProcessRightClickPost -> tryRestockHand with: %s, current: %s\n", stackBeforeUse[hand.ordinal()], player.getHeldItem(hand));
+        tryRestockHand(player, hand, stackBeforeUse[hand.ordinal()]);
     }
 
     public static void onLeftClickMousePre()
@@ -147,6 +144,8 @@ public class PlacementTweaks
         else
         {
             InventoryUtils.trySwapCurrentToolIfNearlyBroken();
+            EnumHand hand = EnumHand.MAIN_HAND;
+            tryRestockHand(mc.player, hand, stackBeforeUse[hand.ordinal()]);
         }
     }
 
@@ -184,12 +183,12 @@ public class PlacementTweaks
                 Vec3d hitVec = trace.hitVec;
                 ItemStack stack = player.getHeldItem(hand);
                 BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, pos, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
-                BlockPos posNew = getPlacementPositionForTargetedPosition(world, pos, side, ctx);
+                BlockPos posNew = getPlacementPositionForTargetedPosition(pos, side, world, ctx);
                 ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posNew, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
 
                 if (hand != null &&
                     posNew.equals(posLast) == false &&
-                    canPlaceBlockIntoPosition(world, posNew, ctx) &&
+                    canPlaceBlockIntoPosition(posNew, world, ctx) &&
                     isPositionAllowedByPlacementRestriction(posNew, side) &&
                     canPlaceBlockAgainst(world, pos, player, hand)
                 )
@@ -293,7 +292,7 @@ public class PlacementTweaks
             firstWasRotation = (flexible && rotation) || (accurate && (accurateIn || accurateReverse));
             firstWasOffset = flexible && offset;
             BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stackPre, posIn, sideIn, (float) hitVecIn.x, (float) hitVecIn.y, (float) hitVecIn.z));
-            posFirst = getPlacementPositionForTargetedPosition(world, posIn, sideIn, ctx);
+            posFirst = getPlacementPositionForTargetedPosition(posIn, sideIn, world, ctx);
             posLast = posFirst;
             hitPartFirst = hitPart;
             handFirst = hand;
@@ -335,7 +334,7 @@ public class PlacementTweaks
         if (flexible)
         {
             BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posIn, sideIn, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
-            posNew = isFirstClick && (rotation || offset) ? getPlacementPositionForTargetedPosition(world, posIn, sideIn, ctx) : posIn;
+            posNew = isFirstClick && (rotation || offset) ? getPlacementPositionForTargetedPosition(posIn, sideIn, world, ctx) : posIn;
 
             // Place the block facing/against the adjacent block (= just rotated from normal)
             if (rotation)
@@ -376,7 +375,7 @@ public class PlacementTweaks
                 else
                 {
                     BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posIn, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
-                    posNew = getPlacementPositionForTargetedPosition(world, posIn, side, ctx);
+                    posNew = getPlacementPositionForTargetedPosition(posIn, side, world, ctx);
                 }
             }
 
@@ -458,7 +457,7 @@ public class PlacementTweaks
         {
             BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posNew, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
 
-            if (canPlaceBlockIntoPosition(world, posNew, ctx))
+            if (canPlaceBlockIntoPosition(posNew, world, ctx))
             {
                 //System.out.printf("tryPlaceBlock() pos: %s, side: %s, part: %s, hitVec: %s\n", posNew, side, hitPart, hitVec);
                 return handleFlexibleBlockPlacement(controller, player, world, posNew, side, playerYaw, hitVec, hand, hitPart);
@@ -556,14 +555,18 @@ public class PlacementTweaks
 
     private static void tryRestockHand(EntityPlayer player, EnumHand hand, ItemStack stackOriginal)
     {
-        ItemStack stackCurrent = player.getHeldItem(hand);
-
-        if (stackOriginal.isEmpty() == false &&
-            (stackCurrent.isEmpty() || fi.dy.masa.malilib.util.InventoryUtils.areStacksEqualIgnoreDurability(stackOriginal, stackCurrent) == false))
+        if (FeatureToggle.TWEAK_HAND_RESTOCK.getBooleanValue())
         {
-            // Don't allow taking stacks from elsewhere in the hotbar, if the cycle tweak is on
-            boolean allowHotbar = FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false;
-            InventoryUtils.restockNewStackToHand(player, hand, stackOriginal, allowHotbar);
+            ItemStack stackCurrent = player.getHeldItem(hand);
+
+            if (stackOriginal.isEmpty() == false &&
+                (stackCurrent.isEmpty() || fi.dy.masa.malilib.util.InventoryUtils.areStacksEqualIgnoreDurability(stackOriginal, stackCurrent) == false))
+            {
+                // Don't allow taking stacks from elsewhere in the hotbar, if the cycle tweak is on
+                boolean allowHotbar = FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false &&
+                                      FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER.getBooleanValue() == false;
+                InventoryUtils.restockNewStackToHand(player, hand, stackOriginal, allowHotbar);
+            }
         }
     }
 
@@ -585,9 +588,21 @@ public class PlacementTweaks
 
         // We need to grab the stack here if the cached stack is still empty,
         // because this code runs before the cached stack gets set on the first click/use.
-        ItemStack stackOriginal = stackBeforeUse[hand.ordinal()].isEmpty() == false && FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false ? stackBeforeUse[hand.ordinal()] : player.getHeldItem(hand).copy();
+        ItemStack stackOriginal;
+
+        if (stackBeforeUse[hand.ordinal()].isEmpty() == false &&
+            FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false &&
+            FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER.getBooleanValue() == false)
+        {
+            stackOriginal = stackBeforeUse[hand.ordinal()];
+        }
+        else
+        {
+            stackOriginal = player.getHeldItem(hand).copy();
+        }
+
         BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stackOriginal, posIn, sideIn, (float) hitVecIn.x, (float) hitVecIn.y, (float) hitVecIn.z));
-        BlockPos posPlacement = getPlacementPositionForTargetedPosition(world, posIn, sideIn, ctx);
+        BlockPos posPlacement = getPlacementPositionForTargetedPosition(posIn, sideIn, world, ctx);
         IBlockState stateBefore = world.getBlockState(posPlacement);
         IBlockState state = world.getBlockState(posIn);
 
@@ -672,13 +687,10 @@ public class PlacementTweaks
             placementCount++;
         }
 
-        if (FeatureToggle.TWEAK_HAND_RESTOCK.getBooleanValue())
-        {
-            // This restock needs to happen even with the pick-before-place tweak active,
-            // otherwise the fast placement mode's checks (getHandWithItem()) will fail...
-            //System.out.printf("processRightClickBlockWrapper -> tryRestockHand with: %s, current: %s\n", stackOriginal, player.getHeldItem(hand));
-            tryRestockHand(player, hand, stackOriginal);
-        }
+        // This restock needs to happen even with the pick-before-place tweak active,
+        // otherwise the fast placement mode's checks (getHandWithItem()) will fail...
+        //System.out.printf("processRightClickBlockWrapper -> tryRestockHand with: %s, current: %s\n", stackOriginal, player.getHeldItem(hand));
+        tryRestockHand(player, hand, stackOriginal);
 
         if (FeatureToggle.TWEAK_AFTER_CLICKER.getBooleanValue() &&
             FeatureToggle.CARPET_ACCURATE_PLACEMENT_PROTOCOL.getBooleanValue() == false &&
@@ -702,6 +714,11 @@ public class PlacementTweaks
                     newSlot = 0;
                 }
 
+                player.inventory.currentItem = newSlot;
+            }
+            else if (FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER.getBooleanValue())
+            {
+                int newSlot = player.getRNG().nextInt(Configs.Generic.HOTBAR_SLOT_RANDOMIZER_MAX.getIntegerValue());
                 player.inventory.currentItem = newSlot;
             }
         }
@@ -847,9 +864,9 @@ public class PlacementTweaks
         return false;
     }
 
-    private static BlockPos getPlacementPositionForTargetedPosition(World world, BlockPos pos, EnumFacing side, BlockItemUseContext useContext)
+    private static BlockPos getPlacementPositionForTargetedPosition(BlockPos pos, EnumFacing side, World world, BlockItemUseContext useContext)
     {
-        if (canPlaceBlockIntoPosition(world, pos, useContext))
+        if (canPlaceBlockIntoPosition(pos, world, useContext))
         {
             return pos;
         }
@@ -857,7 +874,7 @@ public class PlacementTweaks
         return pos.offset(side);
     }
 
-    private static boolean canPlaceBlockIntoPosition(World world, BlockPos pos, BlockItemUseContext useContext)
+    private static boolean canPlaceBlockIntoPosition(BlockPos pos,  World world, BlockItemUseContext useContext)
     {
         IBlockState state = world.getBlockState(pos);
         return state.isReplaceable(useContext) || state.getMaterial().isLiquid() || state.getMaterial().isReplaceable();

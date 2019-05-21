@@ -13,6 +13,7 @@ import fi.dy.masa.tweakeroo.Reference;
 import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import fi.dy.masa.tweakeroo.config.Hotkeys;
+import fi.dy.masa.tweakeroo.util.SnapAimMode;
 import net.minecraft.client.GameSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemBlock;
@@ -88,7 +89,7 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
         if (mc.currentScreen == null && mc.player != null && mc.player.abilities.isCreativeMode &&
             eventButtonState && mc.gameSettings.keyBindUseItem.func_197984_a(eventButton) &&
             FeatureToggle.TWEAK_ANGEL_BLOCK.getBooleanValue() &&
-            mc.objectMouseOver.type == RayTraceResult.Type.MISS)
+            mc.objectMouseOver != null && mc.objectMouseOver.type == RayTraceResult.Type.MISS)
         {
             BlockPos posFront = PositionUtils.getPositionInfrontOfEntity(mc.player);
 
@@ -161,7 +162,7 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
                 Configs.Generic.AFTER_CLICKER_CLICK_COUNT.setIntegerValue(newValue);
                 KeyCallbackAdjustable.setValueChanged();
 
-                String strValue = preGreen + Integer.valueOf(Configs.Generic.AFTER_CLICKER_CLICK_COUNT.getIntegerValue()) + rst;
+                String strValue = preGreen + Configs.Generic.AFTER_CLICKER_CLICK_COUNT.getIntegerValue() + rst;
                 mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_after_clicker_count_to", strValue));
 
                 return true;
@@ -172,7 +173,7 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
                 Configs.Generic.PLACEMENT_LIMIT.setIntegerValue(newValue);
                 KeyCallbackAdjustable.setValueChanged();
 
-                String strValue = preGreen + Integer.valueOf(Configs.Generic.PLACEMENT_LIMIT.getIntegerValue()) + rst;
+                String strValue = preGreen + Configs.Generic.PLACEMENT_LIMIT.getIntegerValue() + rst;
                 mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_placement_limit_to", strValue));
 
                 return true;
@@ -183,8 +184,19 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
                 Configs.Generic.HOTBAR_SLOT_CYCLE_MAX.setIntegerValue(newValue);
                 KeyCallbackAdjustable.setValueChanged();
 
-                String strValue = preGreen + Integer.valueOf(Configs.Generic.HOTBAR_SLOT_CYCLE_MAX.getIntegerValue()) + rst;
+                String strValue = preGreen + Configs.Generic.HOTBAR_SLOT_CYCLE_MAX.getIntegerValue() + rst;
                 mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_hotbar_slot_cycle_max_to", strValue));
+
+                return true;
+            }
+            else if (FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER.getKeybind().isKeybindHeld())
+            {
+                int newValue = Configs.Generic.HOTBAR_SLOT_RANDOMIZER_MAX.getIntegerValue() + (dWheel > 0 ? 1 : -1);
+                Configs.Generic.HOTBAR_SLOT_RANDOMIZER_MAX.setIntegerValue(newValue);
+                KeyCallbackAdjustable.setValueChanged();
+
+                String strValue = preGreen + Configs.Generic.HOTBAR_SLOT_RANDOMIZER_MAX.getIntegerValue() + rst;
+                mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_hotbar_slot_randomizer_max_to", strValue));
 
                 return true;
             }
@@ -194,8 +206,24 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
                 Configs.Generic.PLACEMENT_GRID_SIZE.setIntegerValue(newValue);
                 KeyCallbackAdjustable.setValueChanged();
 
-                String strValue = preGreen + Integer.valueOf(Configs.Generic.PLACEMENT_GRID_SIZE.getIntegerValue()) + rst;
+                String strValue = preGreen + Configs.Generic.PLACEMENT_GRID_SIZE.getIntegerValue() + rst;
                 mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_placement_grid_size_to", strValue));
+
+                return true;
+            }
+            else if (FeatureToggle.TWEAK_SNAP_AIM.getKeybind().isKeybindHeld())
+            {
+                SnapAimMode mode = (SnapAimMode) Configs.Generic.SNAP_AIM_MODE.getOptionListValue();
+                ConfigDouble config = mode == SnapAimMode.PITCH ? Configs.Generic.SNAP_AIM_PITCH_STEP : Configs.Generic.SNAP_AIM_YAW_STEP;
+
+                double newValue = config.getDoubleValue() * (dWheel > 0 ? 2 : 0.5);
+                config.setDoubleValue(newValue);
+                KeyCallbackAdjustable.setValueChanged();
+
+                String val = preGreen + String.valueOf(config.getDoubleValue()) + rst;
+                String key = mode == SnapAimMode.PITCH ? "tweakeroo.message.set_snap_aim_pitch_step_to" : "tweakeroo.message.set_snap_aim_yaw_step_to";
+
+                mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation(key, val));
 
                 return true;
             }
