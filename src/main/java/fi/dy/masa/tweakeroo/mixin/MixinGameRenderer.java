@@ -5,13 +5,23 @@ import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import fi.dy.masa.tweakeroo.config.Hotkeys;
 import fi.dy.masa.tweakeroo.renderer.RenderUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.util.EntitySelectors;
+import net.minecraft.util.math.AxisAlignedBB;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import fi.dy.masa.tweakeroo.config.Callbacks;
 import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.List;
+import java.util.function.Predicate;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer
@@ -51,5 +61,21 @@ public abstract class MixinGameRenderer
         {
             ci.cancel();
         }
+    }
+
+    @Redirect(method = "getMouseOver",
+                at = @At(value="INVOKE",
+                         target="Lnet/minecraft/client/multiplayer/WorldClient;getEntitiesInAABBexcluding(" +
+                                "Lnet/minecraft/entity/Entity;" +
+                                "Lnet/minecraft/util/math/AxisAlignedBB;" +
+                                "Ljava/util/function/Predicate;" +
+                                ")Ljava/util/List;")
+    )
+    private List<Entity> ignoreDeadEntities(WorldClient client, Entity entity, AxisAlignedBB boundingbox, Predicate<Entity> predicate)
+    {
+        if (FeatureToggle.TWEAK_NO_DEAD_MOB_TARGETING.getBooleanValue())
+            predicate = predicate.and(EntitySelectors.IS_ALIVE);
+
+        return client.getEntitiesInAABBexcluding(entity, boundingbox, predicate);
     }
 }

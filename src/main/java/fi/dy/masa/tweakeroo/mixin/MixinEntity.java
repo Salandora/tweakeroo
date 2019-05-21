@@ -62,10 +62,10 @@ public abstract class MixinEntity
         }
     }
 
-    @Inject(method = "turn",
+    @Inject(method = "rotateTowards",
             at = @At(value = "FIELD",
                      target = "Lnet/minecraft/entity/Entity;prevRotationPitch:F", ordinal = 0))
-    private void overrideYaw(float yawChange, float pitchChange, CallbackInfo ci)
+    private void overrideYaw(double yaw, double pitch, CallbackInfo ci)
     {
         if ((Object) this instanceof EntityPlayerSP)
         {
@@ -85,12 +85,12 @@ public abstract class MixinEntity
                     // Not locked, or not snapping the yaw (ie. not in Yaw or Both modes)
                     if (snapAimLock == false || mode == SnapAimMode.PITCH)
                     {
-                        this.realYaw += (double) yawChange * 0.15D;
+                        this.realYaw += (double) yaw * 0.15D;
                     }
 
                     if (snapAimLock == false || mode == SnapAimMode.YAW)
                     {
-                        this.realPitch = MathHelper.clamp(this.realPitch - (double) pitchChange * 0.15D, -limit, limit);
+                        this.realPitch = MathHelper.clamp(this.realPitch - (double) pitch * 0.15D, -limit, limit);
                     }
 
                     this.rotationYaw = MiscUtils.getSnappedYaw(this.realYaw);

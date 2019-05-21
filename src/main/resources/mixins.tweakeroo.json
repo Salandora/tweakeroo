@@ -22,7 +22,6 @@
         "MixinEntityItem",
         "MixinEntityLivingBase",
         "MixinEntityPlayerSP",
-        "MixinEntityRenderer_Predicate",
         "MixinExplosion",
         "MixinFirstPersonRenderer",
         "MixinFogRenderer",

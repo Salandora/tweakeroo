@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.minecraft.client.gui.GuiSlot;
 import net.minecraft.init.Biomes;
+import net.minecraft.util.IItemProvider;
 import net.minecraft.util.registry.IRegistry;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,19 +23,22 @@ import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.FlatLayerInfo;
+import org.spongepowered.asm.mixin.transformer.meta.MixinInner;
 
 @Mixin(GuiFlatPresets.class)
 public abstract class MixinGuiFlatPresets
 {
     // name;blocks;biome;options;iconitem
-    private static final Pattern PATTERN_PRESET = Pattern.compile("^(?<name>[a-zA-Z0-9_ -]+);(?<blocks>[a-z0-9_:\\.\\*-]+);(?<biome>[a-z0-9_:]+);(?<options>[a-z0-9_, \\(\\)=]*);(?<icon>[a-z0-9_:-]+(?:@[0-9]+)?)$");
+    private static final Pattern PATTERN_PRESET = Pattern.compile("^(?<name>[a-zA-Z0-9_ -]+);(?<blocks>[a-z0-9_:\\.\\*-]+);(?<biome>[a-z0-9_:]+);(?<options>[a-z0-9_, \\(\\)=]*);(?<icon>[a-z0-9_:-]+)$");
+
+    @Mixin(targets = "net.minecraft.client.gui.GuiFlatPresets$LayerItem")
+    static class LayerItem {}
 
     @Shadow
     @Final
-    private static List<Object> FLAT_WORLD_PRESETS;
+    private static List<LayerItem> FLAT_WORLD_PRESETS;
 
-    @Shadow
-    private static void registerPreset(String name, Item icon, int iconMetadata, Biome biome, List<String> features, FlatLayerInfo... layers) {}
+    @Shadow protected abstract void addPreset(String p_199709_0_, IItemProvider itemIn, Biome biomeIn, List<String> options, FlatLayerInfo... layers);
 
     @Inject(method = "initGui", at = @At("HEAD"))
     private void addCustomEntries(CallbackInfo ci)
@@ -56,7 +61,7 @@ public abstract class MixinGuiFlatPresets
 
                 if (this.registerPresetFromString(str) && FLAT_WORLD_PRESETS.size() > vanillaEntries)
                 {
-                    Object o = FLAT_WORLD_PRESETS.remove(FLAT_WORLD_PRESETS.size() - 1);
+                    LayerItem o = FLAT_WORLD_PRESETS.remove(FLAT_WORLD_PRESETS.size() - 1);
                     FLAT_WORLD_PRESETS.add(0, o);
                 }
             }
@@ -96,20 +101,19 @@ public abstract class MixinGuiFlatPresets
 
             int index = iconString.indexOf("@");
             String iconItemName;
-            int meta = 0;
 
             if (index != -1 && iconString.length() > index + 1)
             {
                 iconItemName = iconString.substring(0, index);
 
-                try
+                /*try
                 {
                     meta = Integer.parseInt(iconString.substring(index + 1));
                 }
                 catch (Exception e)
                 {
                     return false;
-                }
+                }*/
             }
             else
             {
@@ -130,7 +134,7 @@ public abstract class MixinGuiFlatPresets
                 return false;
             }
 
-            registerPreset(name, item, meta, biome, features, layers);
+            addPreset(name, item, biome, features, layers);
 
             return true;
         }

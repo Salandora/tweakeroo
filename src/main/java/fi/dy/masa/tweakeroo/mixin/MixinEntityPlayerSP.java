@@ -78,7 +78,7 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
         return player.collidedHorizontally;
     }
 
-    @Inject(method = "onLivingUpdate",
+    @Inject(method = "livingTick",
             slice = @Slice(from = @At(value = "INVOKE",
                                       target = "Lnet/minecraft/client/entity/EntityPlayerSP;getFoodStats()Lnet/minecraft/util/FoodStats;")),
             at = @At(value = "FIELD", opcode = Opcodes.PUTFIELD, ordinal = 0, shift = At.Shift.AFTER,

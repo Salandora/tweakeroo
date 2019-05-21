@@ -1,10 +1,7 @@
 package fi.dy.masa.tweakeroo.mixin;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiCommandBlock;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.client.gui.*;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -23,14 +20,14 @@ import net.minecraft.util.math.BlockPos;
 import java.util.function.Consumer;
 
 @Mixin(GuiCommandBlock.class)
-public abstract class MixinGuiCommandBlock extends GuiScreen
+public abstract class MixinGuiCommandBlock extends GuiCommandBlockBase
 {
     @Shadow
     @Final
     private TileEntityCommandBlock commandBlock;
 
-    @Shadow protected GuiButton doneButton;
-    @Shadow protected GuiButton cancelButton;
+    //@Shadow protected GuiButton doneButton;
+    //@Shadow protected GuiButton cancelButton;
     @Shadow private GuiButton modeBtn;
     @Shadow private GuiButton conditionalBtn;
     @Shadow private GuiButton autoExecBtn;
@@ -139,9 +136,10 @@ public abstract class MixinGuiCommandBlock extends GuiScreen
         }
     }*/
 
-    @Inject(method = "render", at = @At("RETURN"))
-    private void onDrawScreen(int mouseX, int mouseY, float partialTicks, CallbackInfo ci)
-    {
+    @Override
+    public void render(int mouseX, int mouseY, float partialTicks) {
+        super.render(mouseX, mouseY, partialTicks);
+
         if (this.textFieldName != null)
         {
             this.textFieldName.drawTextField(mouseX, mouseY, partialTicks);

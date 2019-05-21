@@ -8,7 +8,7 @@ import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import net.minecraft.command.impl.CloneCommand;
 
-@Mixin({FillCommand.class, CloneCommand.class})
+@Mixin(CloneCommand.class)
 public abstract class MixinCommandClone
 {
     @ModifyConstant(method = "doClone", constant = @Constant(intValue = 32768))
