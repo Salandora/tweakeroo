@@ -2,10 +2,12 @@ package fi.dy.masa.tweakeroo.mixin;
 
 import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.tweaks.PlacementHandler;
+import net.minecraft.block.BlockSlab;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
@@ -22,7 +24,9 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ItemBlock.class)
 public abstract class MixinItemBlock extends Item implements IItemStackLimit
@@ -57,7 +61,7 @@ public abstract class MixinItemBlock extends Item implements IItemStackLimit
     {
         IBlockState stateOriginal = this.getStateForPlacement(context);
 
-        if (Configs.Generic.CLIENT_PLACEMENT_ROTATION.getBooleanValue())
+        if (stateOriginal != null && Configs.Generic.CLIENT_PLACEMENT_ROTATION.getBooleanValue())
         {
             PlacementHandler.UseContext ctx = PlacementHandler.UseContext.of(
                     context.getWorld(),
@@ -70,5 +74,25 @@ public abstract class MixinItemBlock extends Item implements IItemStackLimit
         }
 
         return stateOriginal;
+    }
+
+    @Inject(method = "tryPlace",
+            at=@At(value="HEAD"),
+            cancellable = true
+    )
+    private void tryPlace(BlockItemUseContext ctx, CallbackInfoReturnable<EnumActionResult> cir)
+    {
+        BlockPos blockpos = ctx.getPos();
+        World world = ctx.getWorld();
+        IBlockState iblockstate1 = world.getBlockState(blockpos);
+        Block block = iblockstate1.getBlock();
+
+        if (block instanceof BlockSlab &&
+                FeatureToggle.TWEAK_PLACEMENT_RESTRICTION.getBooleanValue() &&
+                FeatureToggle.TWEAK_PLACEMENT_REST_DOUBLE_SLAB.getBooleanValue())
+        {
+            cir.setReturnValue(EnumActionResult.FAIL);
+            cir.cancel();
+        }
     }
 }
