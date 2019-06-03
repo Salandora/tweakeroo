@@ -1,6 +1,7 @@
 package fi.dy.masa.tweakeroo.config;
 
 import fi.dy.masa.malilib.config.IConfigBoolean;
+import fi.dy.masa.malilib.config.options.ConfigInteger;
 import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.hotkeys.IHotkeyCallback;
 import fi.dy.masa.malilib.hotkeys.IKeybind;
@@ -18,7 +19,6 @@ import fi.dy.masa.tweakeroo.util.PlacementRestrictionMode;
 import fi.dy.masa.tweakeroo.util.SnapAimMode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
@@ -28,7 +28,6 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.registry.IRegistry;
-import net.minecraft.util.text.TextFormatting;
 
 import java.util.Arrays;
 
@@ -87,11 +86,11 @@ public class Callbacks
         FeatureToggle.TWEAK_SNAP_AIM.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_SNAP_AIM));
         FeatureToggle.TWEAK_ZOOM.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_ZOOM));
 
-        FeatureToggle.TWEAK_POTION_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "potion", "lingering_potion", "splash_potion" }, 1, 64));
-        FeatureToggle.TWEAK_MINECART_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart" }, 1, 16));
-        FeatureToggle.TWEAK_FILLED_BUCKETS_STACKING.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "lava_bucket", "water_bucket" }, 1, 64));
-        FeatureToggle.TWEAK_MORE_EMPTY_BUCKETS.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "bucket" }, 16, 64));
-        FeatureToggle.TWEAK_MORE_ENDER_PEARLS.setValueChangeCallback(new FeatureCallbackMaxStackSize(new String[] { "ender_pearl" }, 16, 64));
+        Configs.Generic.POTION_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "potion", "lingering_potion", "splash_potion" }));
+        Configs.Generic.MINECART_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart" }));
+        Configs.Generic.FILLED_BUCKETS_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "lava_bucket", "water_bucket" }));
+        Configs.Generic.MORE_EMPTY_BUCKETS.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "bucket" }));
+        Configs.Generic.MORE_ENDER_PEARLS.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "ender_pearl" }));
     }
 
     public static class FeatureCallbackGamma implements IValueChangeCallback<IConfigBoolean>
@@ -153,30 +152,6 @@ public class Callbacks
             {
                 ((IMixinBlock) Blocks.SLIME_BLOCK).setSlipperiness((float) Configs.Internal.SLIME_BLOCK_SLIPPERINESS_ORIGINAL.getDoubleValue());
             }
-        }
-    }
-
-    public static class FeatureCallbackMaxStackSize implements IValueChangeCallback<IConfigBoolean>
-    {
-        private final Item[] items;
-        private final int defValue;
-        private final int newValue;
-
-        public FeatureCallbackMaxStackSize(String[] item_ids, int defValue, int newValue) {
-            this.defValue = defValue;
-            this.newValue = newValue;
-
-            this.items = new Item[item_ids.length];
-            for (int i=0; i< item_ids.length; ++i)
-            {
-                this.items[i] = IRegistry.ITEM.get(new ResourceLocation(item_ids[i]));
-            }
-        }
-
-        @Override
-        public void onValueChanged(IConfigBoolean config) {
-            int value = config.getBooleanValue() ? newValue : defValue;
-            Arrays.stream(items).forEach((i) -> ((IItemStackLimit)i).setMaxStackSize(value));
         }
     }
 
@@ -631,6 +606,25 @@ public class Callbacks
             }
 
             return true;
+        }
+    }
+
+    public static class ConfigSetMaxStackSize implements IValueChangeCallback<ConfigInteger>
+    {
+        private final Item[] items;
+
+        public ConfigSetMaxStackSize(String[] item_ids) {
+            this.items = new Item[item_ids.length];
+            for (int i=0; i< item_ids.length; ++i)
+            {
+                this.items[i] = IRegistry.ITEM.get(new ResourceLocation(item_ids[i]));
+            }
+        }
+
+        @Override
+        public void onValueChanged(ConfigInteger config) {
+            int value = config.getIntegerValue();
+            Arrays.stream(items).forEach((i) -> ((IItemStackLimit)i).setMaxStackSize(value));
         }
     }
 }

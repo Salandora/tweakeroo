@@ -42,11 +42,11 @@ public abstract class MixinItemBlock extends Item implements IItemStackLimit
     @Override
     public int getMaxStackSize(ItemStack stack)
     {
-        if (FeatureToggle.TWEAK_SHULKERBOX_STACKING.getBooleanValue() &&
-            ((ItemBlock) (Object) this).getBlock() instanceof BlockShulkerBox &&
-            InventoryUtils.shulkerBoxHasItems(stack) == false)
+        if (/*FeatureToggle.TWEAK_SHULKERBOX_STACKING.getBooleanValue() &&*/
+            ((ItemBlock) (Object) this).getBlock() instanceof BlockShulkerBox /*&&
+            InventoryUtils.shulkerBoxHasItems(stack) == false*/)
         {
-            return 64;
+            return Configs.Generic.SHULKERBOX_STACKING.getIntegerValue();
         }
 
         // FIXME How to call the stack-sensitive version on the super class?
@@ -74,25 +74,5 @@ public abstract class MixinItemBlock extends Item implements IItemStackLimit
         }
 
         return stateOriginal;
-    }
-
-    @Inject(method = "tryPlace",
-            at=@At(value="HEAD"),
-            cancellable = true
-    )
-    private void tryPlace(BlockItemUseContext ctx, CallbackInfoReturnable<EnumActionResult> cir)
-    {
-        BlockPos blockpos = ctx.getPos();
-        World world = ctx.getWorld();
-        IBlockState iblockstate1 = world.getBlockState(blockpos);
-        Block block = iblockstate1.getBlock();
-
-        if (block instanceof BlockSlab &&
-                FeatureToggle.TWEAK_PLACEMENT_RESTRICTION.getBooleanValue() &&
-                FeatureToggle.TWEAK_PLACEMENT_REST_DOUBLE_SLAB.getBooleanValue())
-        {
-            cir.setReturnValue(EnumActionResult.FAIL);
-            cir.cancel();
-        }
     }
 }

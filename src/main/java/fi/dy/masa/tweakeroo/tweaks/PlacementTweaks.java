@@ -425,6 +425,8 @@ public class PlacementTweaks
                 if (stack.getItem() instanceof ItemBlock)
                 {
                     BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posNew, sideIn, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
+                    BlockPos posPlacement = getPlacementPositionForTargetedPosition(posNew, sideIn, world, ctx);
+                    ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posPlacement, sideIn, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
                     ItemBlock item = (ItemBlock) stack.getItem();
                     IBlockState state = item.getBlock().getStateForPlacement(ctx);
 
@@ -772,6 +774,7 @@ public class PlacementTweaks
             @Nullable HitPart hitPart)
     {
         EnumFacing facing = EnumFacing.byHorizontalIndex(MathHelper.floor((playerYaw * 4.0F / 360.0F) + 0.5D) & 3);
+        float pitchOrig = player.rotationPitch;
         float yawOrig = player.rotationYaw;
 
         if (hitPart == HitPart.CENTER)
@@ -780,19 +783,22 @@ public class PlacementTweaks
         }
         else if (hitPart == HitPart.LEFT)
         {
-            facing = facing.rotateYCCW();
+            facing = facing.rotateYCCW().getOpposite();
         }
         else if (hitPart == HitPart.RIGHT)
         {
-            facing = facing.rotateY();
+            facing = facing.rotateY().getOpposite();
         }
 
+        player.rotationPitch = (4.0F / 360.0F) - pitchOrig;
         player.rotationYaw = facing.getHorizontalAngle();
         player.connection.sendPacket(new CPacketPlayer.Rotation(player.rotationYaw, player.rotationPitch, player.onGround));
 
         //System.out.printf("handleFlexibleBlockPlacement() pos: %s, side: %s, orig: %s new: %s, hv: %s\n", pos, side, EnumFacing.byHorizontalIndex(MathHelper.floor((playerYaw * 4.0F / 360.0F) + 0.5D) & 3), facing, hitVec);
         EnumActionResult result = processRightClickBlockWrapper(controller, player, world, pos, side, hitVec, hand);
 
+
+        player.rotationPitch = pitchOrig;
         player.rotationYaw = yawOrig;
         player.connection.sendPacket(new CPacketPlayer.Rotation(player.rotationYaw, player.rotationPitch, player.onGround));
 
