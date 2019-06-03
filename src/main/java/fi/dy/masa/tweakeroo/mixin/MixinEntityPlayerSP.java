@@ -8,12 +8,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.mojang.authlib.GameProfile;
 import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
+import fi.dy.masa.tweakeroo.util.MiscUtils;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.entity.player.PlayerCapabilities;
 import net.minecraft.init.MobEffects;
 import net.minecraft.util.MovementInput;
 import net.minecraft.world.World;
@@ -28,6 +31,9 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
 
     @Shadow public MovementInput movementInput;
     @Shadow protected int sprintToggleTimer;
+
+    @Shadow
+    protected abstract boolean isCurrentViewEntity();
 
     @Redirect(method = "livingTick()V",
               at = @At(value = "INVOKE",
@@ -89,5 +95,55 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
         {
             this.sprintToggleTimer = 0;
         }
+    }
+
+    @Redirect(method = "livingTick", at = @At(
+                value = "INVOKE",
+                target = "Lnet/minecraft/client/entity/EntityPlayerSP;isCurrentViewEntity()Z"))
+    private boolean preventVerticalMotion(EntityPlayerSP player)
+    {
+        if (FeatureToggle.TWEAK_FREE_CAMERA.getBooleanValue() && FeatureToggle.TWEAK_FREE_CAMERA_MOTION.getBooleanValue())
+        {
+            return false;
+        }
+
+        return this.isCurrentViewEntity();
+    }
+
+    @Redirect(method = "livingTick", at = @At(
+                value = "FIELD", ordinal = 1,
+                target = "Lnet/minecraft/entity/player/PlayerCapabilities;allowFlying:Z"))
+    private boolean preventFlyStateToggle(PlayerCapabilities abilities)
+    {
+        if (FeatureToggle.TWEAK_FREE_CAMERA.getBooleanValue() && FeatureToggle.TWEAK_FREE_CAMERA_MOTION.getBooleanValue())
+        {
+            return false;
+        }
+
+        return abilities.allowFlying;
+    }
+
+    @Inject(method = "updateEntityActionState", at = @At("RETURN"))
+    private void preventJumpingInCameraMode(CallbackInfo ci)
+    {
+        if (FeatureToggle.TWEAK_FREE_CAMERA.getBooleanValue() && FeatureToggle.TWEAK_FREE_CAMERA_MOTION.getBooleanValue())
+        {
+            this.isJumping = false;
+        }
+    }
+
+    @Inject(method = "isSneaking", at = @At("HEAD"), cancellable = true)
+    private void preventSneakingInCameraMode(CallbackInfoReturnable<Boolean> cir)
+    {
+        if (FeatureToggle.TWEAK_FREE_CAMERA.getBooleanValue() && FeatureToggle.TWEAK_FREE_CAMERA_MOTION.getBooleanValue())
+        {
+            cir.setReturnValue(false);
+        }
+    }
+
+    @Override
+    public boolean isSpectator()
+    {
+        return super.isSpectator() || MiscUtils.getFreeCameraSpectator();
     }
 }

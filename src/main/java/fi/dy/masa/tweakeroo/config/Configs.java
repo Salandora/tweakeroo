@@ -33,6 +33,8 @@ public class Configs implements IConfigHandler
     {
         public static final ConfigInteger       AFTER_CLICKER_CLICK_COUNT           = new ConfigInteger     ("afterClickerClickCount",  1, 1, 32, "The number of right clicks to do per placed block when\ntweakAfterClicker is enabled");
         public static final ConfigDouble        BLOCK_REACH_DISTANCE                = new ConfigDouble      ("blockReachDistance", 4.5, 0, 8, "The block reach distance to use if the\noverride tweak is enabled.\nThe maximum the server allows is 8 for placing, 6 for breaking.");
+        public static final ConfigInteger       BREAKING_GRID_SIZE                  = new ConfigInteger     ("breakingGridSize", 3, 1, 1000, "The grid interval size for the grid breaking mode.\nTo quickly adjust the value, scroll while\nholding down the tweak toggle keybind.");
+        public static final ConfigOptionList    BREAKING_RESTRICTION_MODE           = new ConfigOptionList  ("breakingRestrictionMode", PlacementRestrictionMode.LINE, "The Breaking Restriction mode to use (hotkey-selectable)");
         public static final ConfigColor         CHAT_BACKGROUND_COLOR               = new ConfigColor       ("chatBackgroundColor", "#80000000", "The background color for the chat messages,\nif 'tweakChatBackgroundColor' is enabled");
         public static final ConfigString        CHAT_TIME_FORMAT                    = new ConfigString      ("chatTimeFormat", "[HH:mm:ss]", "The time format for chat messages, if tweakChatTimestamp is enabled\nUses the Java SimpleDateFormat format specifiers.");
         public static final ConfigBoolean       CLIENT_PLACEMENT_ROTATION           = new ConfigBoolean     ("clientPlacementRotation", true, "Enable single player and client side placement rotations,\nsuch as Accurate Placement working in single player without Carpet mod");
@@ -45,7 +47,9 @@ public class Configs implements IConfigHandler
         public static final ConfigDouble        FLY_SPEED_PRESET_2                  = new ConfigDouble      ("flySpeedPreset2", 0.064, 0, 4, "The fly speed for preset 2");
         public static final ConfigDouble        FLY_SPEED_PRESET_3                  = new ConfigDouble      ("flySpeedPreset3", 0.128, 0, 4, "The fly speed for preset 3");
         public static final ConfigDouble        FLY_SPEED_PRESET_4                  = new ConfigDouble      ("flySpeedPreset4", 0.32, 0, 4, "The fly speed for preset 4");
+        public static final ConfigBoolean       FREE_CAMERA_MOTION_TOGGLE           = new ConfigBoolean     ("freeCameraMotionToggle", true, "If enabled, then toggling on/off the Free Camera mode\nwill also automatically toggle on/off the free camera motion feature");
         public static final ConfigInteger       GAMMA_OVERRIDE_VALUE                = new ConfigInteger     ("gammaOverrideValue", 16, 0, 1000, "The gamma value to use when the override option is enabled");
+        public static final ConfigBoolean       HAND_RESTOCK_PRE                    = new ConfigBoolean     ("handRestockPre", true, "If enabled, then hand restocking happens\nbefore the stack runs out");
         public static final ConfigInteger       HOTBAR_SLOT_CYCLE_MAX               = new ConfigInteger     ("hotbarSlotCycleMax", 2, 1, 9, "This is the last hotbar slot to use/cycle through\nif the hotbar slot cycle tweak is enabled.\nBasically the cycle will jump back to the first slot\nwhen going over the maximum slot number set here.");
         public static final ConfigInteger       HOTBAR_SLOT_RANDOMIZER_MAX          = new ConfigInteger     ("hotbarSlotRandomizerMax", 5, 1, 9, "This is the last hotbar slot to use if the hotbar slot randomizer\ntweak is enabled. Basically the selected hotbar slot will be randomly\npicked from 1 to this maximum slot after an item use.");
         public static final ConfigOptionList    HOTBAR_SWAP_OVERLAY_ALIGNMENT       = new ConfigOptionList  ("hotbarSwapOverlayAlignment", HudAlignment.BOTTOM_RIGHT, "The positioning of the hotbar swap overlay");
@@ -78,7 +82,9 @@ public class Configs implements IConfigHandler
 
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(
                 CLIENT_PLACEMENT_ROTATION,
+                FREE_CAMERA_MOTION_TOGGLE,
                 LAVA_VISIBILITY_OPTIFINE,
+                HAND_RESTOCK_PRE,
                 PERMANENT_SNEAK_ALLOW_IN_GUIS,
                 PLACEMENT_RESTRICTION_TIED_TO_FAST,
                 POTION_WARNING_BENEFICIAL_ONLY,
@@ -88,6 +94,7 @@ public class Configs implements IConfigHandler
                 SNAP_AIM_INDICATOR,
                 SNAP_AIM_PITCH_OVERSHOOT,
 
+                BREAKING_RESTRICTION_MODE,
                 PLACEMENT_RESTRICTION_MODE,
                 HOTBAR_SWAP_OVERLAY_ALIGNMENT,
                 SNAP_AIM_MODE,
@@ -99,6 +106,7 @@ public class Configs implements IConfigHandler
 
                 AFTER_CLICKER_CLICK_COUNT,
                 BLOCK_REACH_DISTANCE,
+                BREAKING_GRID_SIZE,
                 FAST_BLOCK_PLACEMENT_COUNT,
                 FAST_LEFT_CLICK_COUNT,
                 FAST_RIGHT_CLICK_COUNT,
@@ -123,6 +131,7 @@ public class Configs implements IConfigHandler
                 RENDER_LIMIT_XP_ORB,
                 SNAP_AIM_PITCH_STEP,
                 SNAP_AIM_YAW_STEP,
+                STRUCTURE_BLOCK_MAX_SIZE,
                 ZOOM_FOV
         );
     }

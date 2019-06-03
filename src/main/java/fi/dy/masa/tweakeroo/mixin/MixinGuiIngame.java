@@ -33,7 +33,7 @@ public abstract class MixinGuiIngame extends Gui
     {
         if (FeatureToggle.TWEAK_F3_CURSOR.getBooleanValue())
         {
-            RenderUtils.renderDirectionsCursor(this.zLevel, partialTicks);
+            RenderUtils.renderDirectionsCursor(mc.mainWindow, this.zLevel, partialTicks);
             ci.cancel();
         }
     }

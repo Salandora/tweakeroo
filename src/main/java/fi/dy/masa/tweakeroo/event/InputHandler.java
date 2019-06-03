@@ -67,15 +67,14 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
     }
 
     @Override
-    public boolean onKeyInput(int eventKey, boolean eventKeyState)
+    public boolean onKeyInput(int keyCode, int scanCode, int modifiers, boolean eventKeyState)
     {
         Minecraft mc = Minecraft.getInstance();
 
         // Not in a GUI
         if (mc.currentScreen == null && eventKeyState)
         {
-            int scanCode = 0; // FIXME
-            this.storeLastMovementDirection(eventKey, scanCode, mc);
+            this.storeLastMovementDirection(keyCode, scanCode, mc);
         }
 
         return false;
@@ -197,6 +196,17 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
 
                 String strValue = preGreen + Configs.Generic.HOTBAR_SLOT_RANDOMIZER_MAX.getIntegerValue() + rst;
                 mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_hotbar_slot_randomizer_max_to", strValue));
+
+                return true;
+            }
+            else if (FeatureToggle.TWEAK_BREAKING_GRID.getKeybind().isKeybindHeld())
+            {
+                int newValue = Configs.Generic.BREAKING_GRID_SIZE.getIntegerValue() + (dWheel > 0 ? 1 : -1);
+                Configs.Generic.BREAKING_GRID_SIZE.setIntegerValue(newValue);
+                KeyCallbackAdjustable.setValueChanged();
+
+                String strValue = preGreen + Configs.Generic.BREAKING_GRID_SIZE.getIntegerValue() + rst;
+                mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_breaking_grid_size_to", strValue));
 
                 return true;
             }

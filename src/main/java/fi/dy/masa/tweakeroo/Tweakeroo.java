@@ -1,5 +1,7 @@
 package fi.dy.masa.tweakeroo;
 
+import fi.dy.masa.malilib.event.WorldLoadHandler;
+import fi.dy.masa.tweakeroo.event.WorldLoadListener;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.dimdev.rift.listener.client.ClientTickable;
@@ -54,13 +56,16 @@ public class Tweakeroo implements ClientTickable, InitializationListener
         {
             ConfigManager.getInstance().registerConfigHandler(Reference.MOD_ID, new Configs());
 
-            InputEventHandler.getInstance().registerKeybindProvider(InputHandler.getInstance());
-            InputEventHandler.getInstance().registerKeyboardInputHandler(InputHandler.getInstance());
-            InputEventHandler.getInstance().registerMouseInputHandler(InputHandler.getInstance());
+            InputEventHandler.getKeybindManager().registerKeybindProvider(InputHandler.getInstance());
+            InputEventHandler.getInputManager().registerKeyboardInputHandler(InputHandler.getInstance());
+            InputEventHandler.getInputManager().registerMouseInputHandler(InputHandler.getInstance());
 
             IRenderer renderer = new RenderHandler();
             RenderEventHandler.getInstance().registerGameOverlayRenderer(renderer);
             RenderEventHandler.getInstance().registerWorldLastRenderer(renderer);
+
+            WorldLoadListener listener = new WorldLoadListener();
+            WorldLoadHandler.getInstance().registerWorldLoadPreHandler(listener);
 
             Callbacks.init(Minecraft.getInstance());
         }
