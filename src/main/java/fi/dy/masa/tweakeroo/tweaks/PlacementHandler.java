@@ -8,7 +8,8 @@ import net.minecraft.block.BlockStairs;
 import net.minecraft.block.BlockTrapDoor;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.state.IProperty;
+import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.state.DirectionProperty;
 import net.minecraft.state.properties.ComparatorMode;
 import net.minecraft.state.properties.Half;
 import net.minecraft.util.EnumFacing;
@@ -24,7 +25,7 @@ public class PlacementHandler
         IBlockState state = stateIn;
         Vec3d hitVec = context.getHitVec();
         Block block = stateIn.getBlock();
-        @Nullable IProperty<EnumFacing> property = fi.dy.masa.malilib.util.BlockUtils.getFirstDirectionProperty(stateIn);
+        @Nullable DirectionProperty property = fi.dy.masa.malilib.util.BlockUtils.getFirstDirectionProperty(stateIn);
         int x = (int) hitVec.x;
 
         if (x >= 2 && property != null)
@@ -55,9 +56,9 @@ public class PlacementHandler
             }
         }
 
-        if (block instanceof BlockRedstoneRepeater)
+        if (x >= 10)
         {
-            if (x > 10)
+            if (block instanceof BlockRedstoneRepeater)
             {
                 Integer delay = (x / 10) + 1;
 
@@ -66,24 +67,15 @@ public class PlacementHandler
                     state = state.with(BlockRedstoneRepeater.DELAY, delay);
                 }
             }
-        }
-        else if (block instanceof BlockRedstoneComparator)
-        {
-            if (x >= 10)
+            else if (block instanceof BlockRedstoneComparator)
             {
                 state = state.with(BlockRedstoneComparator.MODE, ComparatorMode.SUBTRACT);
             }
-        }
-        else if (block instanceof BlockTrapDoor)
-        {
-            if (x >= 10)
+            else if (block instanceof BlockTrapDoor)
             {
                 state = state.with(BlockTrapDoor.HALF, Half.TOP);
             }
-        }
-        else if (block instanceof BlockStairs && state.get(BlockStairs.HALF) == Half.TOP)
-        {
-            if (x >= 10)
+            else if (block instanceof BlockStairs && state.get(BlockStairs.HALF) == Half.BOTTOM)
             {
                 state = state.with(BlockStairs.HALF, Half.TOP);
             }
@@ -114,6 +106,11 @@ public class PlacementHandler
         public static UseContext of(World world, BlockPos pos, EnumFacing side, Vec3d hitVec, EntityLivingBase entity, EnumHand hand)
         {
             return new UseContext(world, pos, side, hitVec, entity, hand);
+        }
+
+        public static UseContext from(BlockItemUseContext ctx, EnumHand hand)
+        {
+            return new UseContext(ctx.getWorld(), ctx.getPos(), ctx.getFace(), new Vec3d(ctx.getHitX(), ctx.getHitY(), ctx.getHitZ()), ctx.getPlayer(), hand);
         }
 
         public World getWorld()

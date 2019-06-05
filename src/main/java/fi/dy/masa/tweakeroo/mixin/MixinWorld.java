@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import fi.dy.masa.tweakeroo.config.Configs;
-import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
@@ -34,6 +33,29 @@ public abstract class MixinWorld
     @Final
     private List<TileEntity> tileEntitiesToBeRemoved;
 
+    @Inject(method = "tickEntity(Lnet/minecraft/entity/Entity;Z)V", at = @At("HEAD"), cancellable = true)
+    private void preventEntityTicking(Entity entityIn, boolean forceUpdate, CallbackInfo ci)
+    {
+        if (Configs.Disable.DISABLE_ENTITY_TICKING.getBooleanValue() && (entityIn instanceof EntityPlayer) == false)
+        {
+            ci.cancel();
+        }
+    }
+
+    @Redirect(method = "tickEntities",
+            slice = @Slice(
+                    from = @At(value = "FIELD", target = "Lnet/minecraft/world/World;processingLoadedTiles:Z", ordinal = 0)),
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/tileentity/TileEntity;isRemoved()Z", ordinal = 0))
+    private boolean preventTileEntityTicking(TileEntity te)
+    {
+        if (Configs.Disable.DISABLE_TILE_ENTITY_TICKING.getBooleanValue())
+        {
+            return true;
+        }
+
+        return te.isRemoved();
+    }
+
     @Inject(method = "tickEntities",
             at = @At(value = "FIELD", target = "Lnet/minecraft/world/World;tileEntitiesToBeRemoved:Ljava/util/List;", ordinal = 0))
     private void optimizedTileEntityRemoval(CallbackInfo ci)
@@ -49,26 +71,5 @@ public abstract class MixinWorld
                 this.tileEntitiesToBeRemoved.clear();
             }
         }
-    }
-
-    @Inject(method = "tickEntity(Lnet/minecraft/entity/Entity;Z)V", at = @At("HEAD"), cancellable = true)
-    private void preventEntityTicking(Entity entityIn, boolean forceUpdate, CallbackInfo ci)
-    {
-        if (FeatureToggle.TWEAK_NO_ENTITY_TICKING.getBooleanValue() && (entityIn instanceof EntityPlayer) == false)
-        {
-            ci.cancel();
-        }
-    }
-
-    @Redirect(method = "tickEntities",
-            slice = @Slice(
-                    from = @At(value = "FIELD", target = "Lnet/minecraft/world/World;processingLoadedTiles:Z", ordinal = 0)),
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/tileentity/TileEntity;isRemoved()Z", ordinal = 0))
-    private boolean preventTileEntityTicking(TileEntity te) {
-        if (FeatureToggle.TWEAK_NO_TILE_ENTITY_TICKING.getBooleanValue()) {
-            return true;
-        }
-
-        return te.isRemoved();
     }
 }

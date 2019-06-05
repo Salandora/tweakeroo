@@ -108,12 +108,19 @@ public class PlacementTweaks
 
         ItemStack stackOriginal = player.getHeldItem(hand);
 
-        if (isEmulatedClick == false &&
-            FeatureToggle.TWEAK_HAND_RESTOCK.getBooleanValue() &&
+        if (FeatureToggle.TWEAK_HAND_RESTOCK.getBooleanValue() &&
             stackOriginal.isEmpty() == false)
         {
-            //System.out.printf("onProcessRightClickPre storing stack: %s\n", stackOriginal);
-            stackBeforeUse[hand.ordinal()] = stackOriginal.copy();
+            if (isEmulatedClick == false)
+            {
+                //System.out.printf("onProcessRightClickPre storing stack: %s\n", stackOriginal);
+                stackBeforeUse[hand.ordinal()] = stackOriginal.copy();
+            }
+
+            // Don't allow taking stacks from elsewhere in the hotbar, if the cycle tweak is on
+            boolean allowHotbar = FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false &&
+                                  FeatureToggle.TWEAK_HOTBAR_SLOT_RANDOMIZER.getBooleanValue() == false;
+            InventoryUtils.preRestockHand(player, hand, allowHotbar);
         }
 
         return InventoryUtils.canUnstackingItemNotFitInInventory(stackOriginal, player);
@@ -202,12 +209,12 @@ public class PlacementTweaks
                 Vec3d hitVec = trace.hitVec;
                 ItemStack stack = player.getHeldItem(hand);
                 BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, pos, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
-                BlockPos posNew = getPlacementPositionForTargetedPosition(pos, side, world, ctx);
+                BlockPos posNew = getPlacementPositionForTargetedPosition(world, pos, side, ctx);
                 ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posNew, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
 
                 if (hand != null &&
                     posNew.equals(posLast) == false &&
-                    canPlaceBlockIntoPosition(posNew, world, ctx) &&
+                    canPlaceBlockIntoPosition(world, posNew, ctx) &&
                     isPositionAllowedByPlacementRestriction(posNew, side) &&
                     canPlaceBlockAgainst(world, pos, player, hand)
                 )
@@ -311,7 +318,7 @@ public class PlacementTweaks
             firstWasRotation = (flexible && rotation) || (accurate && (accurateIn || accurateReverse));
             firstWasOffset = flexible && offset;
             BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stackPre, posIn, sideIn, (float) hitVecIn.x, (float) hitVecIn.y, (float) hitVecIn.z));
-            posFirst = getPlacementPositionForTargetedPosition(posIn, sideIn, world, ctx);
+            posFirst = getPlacementPositionForTargetedPosition(world, posIn, sideIn, ctx);
             posLast = posFirst;
             hitPartFirst = hitPart;
             handFirst = hand;
@@ -354,7 +361,7 @@ public class PlacementTweaks
         if (flexible)
         {
             BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posIn, sideIn, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
-            posNew = isFirstClick && (rotation || offset || adjacent) ? getPlacementPositionForTargetedPosition(posIn, sideIn, world, ctx) : posIn;
+            posNew = isFirstClick && (rotation || offset || adjacent) ? getPlacementPositionForTargetedPosition(world, posIn, sideIn, ctx) : posIn;
 
             // Place the block into the adjacent position
             if (adjacent && hitPart != null && hitPart != HitPart.CENTER)
@@ -362,7 +369,7 @@ public class PlacementTweaks
                 posNew = posNew.offset(sideRotatedIn.getOpposite()).offset(sideIn.getOpposite());
                 handleFlexible = true;
             }
-            
+
             // Place the block facing/against the adjacent block (= just rotated from normal)
             if (rotation)
             {
@@ -402,7 +409,7 @@ public class PlacementTweaks
                 else
                 {
                     BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posIn, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
-                    posNew = getPlacementPositionForTargetedPosition(posIn, side, world, ctx);
+                    posNew = getPlacementPositionForTargetedPosition(world, posIn, side, ctx);
                 }
             }
 
@@ -425,7 +432,7 @@ public class PlacementTweaks
                 if (stack.getItem() instanceof ItemBlock)
                 {
                     BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posNew, sideIn, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
-                    BlockPos posPlacement = getPlacementPositionForTargetedPosition(posNew, sideIn, world, ctx);
+                    BlockPos posPlacement = getPlacementPositionForTargetedPosition(world, posNew, sideIn, ctx);
                     ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posPlacement, sideIn, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
                     ItemBlock item = (ItemBlock) stack.getItem();
                     IBlockState state = item.getBlock().getStateForPlacement(ctx);
@@ -487,7 +494,7 @@ public class PlacementTweaks
         {
             BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stack, posNew, side, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z));
 
-            if (canPlaceBlockIntoPosition(posNew, world, ctx))
+            if (canPlaceBlockIntoPosition(world, posNew, ctx))
             {
                 //System.out.printf("tryPlaceBlock() pos: %s, side: %s, part: %s, hitVec: %s\n", posNew, side, hitPart, hitVec);
                 return handleFlexibleBlockPlacement(controller, player, world, posNew, side, playerYaw, hitVec, hand, hitPart);
@@ -571,7 +578,7 @@ public class PlacementTweaks
             return false;
         }
 
-        RayTraceResult trace = player.rayTrace(6d, 0f, RayTraceFluidMode.ALWAYS);
+        RayTraceResult trace = player.rayTrace(6, 0f, RayTraceFluidMode.NEVER);
 
         if (trace == null || trace.type != RayTraceResult.Type.BLOCK)
         {
@@ -590,7 +597,8 @@ public class PlacementTweaks
             ItemStack stackCurrent = player.getHeldItem(hand);
 
             if (stackOriginal.isEmpty() == false &&
-                (stackCurrent.isEmpty() || fi.dy.masa.malilib.util.InventoryUtils.areStacksEqualIgnoreDurability(stackOriginal, stackCurrent) == false))
+                (stackCurrent.isEmpty() ||
+                 fi.dy.masa.malilib.util.InventoryUtils.areStacksEqualIgnoreDurability(stackOriginal, stackCurrent) == false))
             {
                 // Don't allow taking stacks from elsewhere in the hotbar, if the cycle tweak is on
                 boolean allowHotbar = FeatureToggle.TWEAK_HOTBAR_SLOT_CYCLE.getBooleanValue() == false &&
@@ -638,7 +646,7 @@ public class PlacementTweaks
         }
 
         BlockItemUseContext ctx = new BlockItemUseContext(new ItemUseContext(player, stackOriginal, posIn, sideIn, (float) hitVecIn.x, (float) hitVecIn.y, (float) hitVecIn.z));
-        BlockPos posPlacement = getPlacementPositionForTargetedPosition(posIn, sideIn, world, ctx);
+        BlockPos posPlacement = getPlacementPositionForTargetedPosition(world, posIn, sideIn, ctx);
         IBlockState stateBefore = world.getBlockState(posPlacement);
         IBlockState state = world.getBlockState(posIn);
 
@@ -939,9 +947,9 @@ public class PlacementTweaks
         return false;
     }
 
-    private static BlockPos getPlacementPositionForTargetedPosition(BlockPos pos, EnumFacing side, World world, BlockItemUseContext useContext)
+    private static BlockPos getPlacementPositionForTargetedPosition(World world, BlockPos pos, EnumFacing side, BlockItemUseContext useContext)
     {
-        if (canPlaceBlockIntoPosition(pos, world, useContext))
+        if (canPlaceBlockIntoPosition(world, pos, useContext))
         {
             return pos;
         }
@@ -949,7 +957,7 @@ public class PlacementTweaks
         return pos.offset(side);
     }
 
-    private static boolean canPlaceBlockIntoPosition(BlockPos pos,  World world, BlockItemUseContext useContext)
+    private static boolean canPlaceBlockIntoPosition(World world, BlockPos pos, BlockItemUseContext useContext)
     {
         IBlockState state = world.getBlockState(pos);
         return state.isReplaceable(useContext) || state.getMaterial().isLiquid() || state.getMaterial().isReplaceable();

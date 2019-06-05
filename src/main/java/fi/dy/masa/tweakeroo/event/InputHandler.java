@@ -18,7 +18,6 @@ import net.minecraft.client.GameSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.MovementInput;
@@ -57,11 +56,17 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
         {
             manager.addKeybindToMap(hotkey.getKeybind());
         }
+
+        for (IHotkey hotkey : Configs.Disable.OPTIONS)
+        {
+            manager.addKeybindToMap(hotkey.getKeybind());
+        }
     }
 
     @Override
     public void addHotkeys(IKeybindManager manager)
     {
+        manager.addHotkeysForCategory(Reference.MOD_NAME, "tweakeroo.hotkeys.category.disable_toggle_hotkeys", Configs.Disable.OPTIONS);
         manager.addHotkeysForCategory(Reference.MOD_NAME, "tweakeroo.hotkeys.category.generic_hotkeys", Hotkeys.HOTKEY_LIST);
         manager.addHotkeysForCategory(Reference.MOD_NAME, "tweakeroo.hotkeys.category.tweak_toggle_hotkeys", ImmutableList.copyOf(FeatureToggle.values()));
     }
@@ -118,10 +123,9 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
     }
 
     @Override
-    public boolean onMouseScroll(int mouseX, int mouseY, double amount)
+    public boolean onMouseScroll(int mouseX, int mouseY, double dWheel)
     {
         Minecraft mc = Minecraft.getInstance();
-        int dWheel = (int) amount;
 
         // Not in a GUI
         if (mc.currentScreen == null && dWheel != 0)
@@ -242,7 +246,12 @@ public class InputHandler implements IKeybindProvider, IKeyboardInputHandler, IM
             {
                 double newValue = Configs.Generic.ZOOM_FOV.getDoubleValue() + (dWheel > 0 ? 1 : -1);
                 Configs.Generic.ZOOM_FOV.setDoubleValue(newValue);
-                KeyCallbackAdjustable.setValueChanged();
+
+                // Only prevent the next trigger when adjusting the value with the actual toggle key held
+                if (FeatureToggle.TWEAK_ZOOM.getKeybind().isKeybindHeld())
+                {
+                    KeyCallbackAdjustable.setValueChanged();
+                }
 
                 String strValue = String.format("%s%.1f%s", preGreen, Configs.Generic.ZOOM_FOV.getDoubleValue(), rst);
                 mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.set_zoom_fov_to", strValue));

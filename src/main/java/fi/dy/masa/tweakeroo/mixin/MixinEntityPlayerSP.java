@@ -24,16 +24,16 @@ import net.minecraft.world.World;
 @Mixin(EntityPlayerSP.class)
 public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
 {
-    public MixinEntityPlayerSP(World worldIn, GameProfile playerProfile)
-    {
-        super(worldIn, playerProfile);
-    }
-
     @Shadow public MovementInput movementInput;
     @Shadow protected int sprintToggleTimer;
 
     @Shadow
     protected abstract boolean isCurrentViewEntity();
+
+    public MixinEntityPlayerSP(World worldIn, GameProfile playerProfile)
+    {
+        super(worldIn, playerProfile);
+    }
 
     @Redirect(method = "livingTick()V",
               at = @At(value = "INVOKE",
@@ -41,7 +41,7 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
     private boolean onDoesGuiPauseGame(GuiScreen gui)
     {
         // Spoof the return value to prevent entering the if block
-        if (FeatureToggle.TWEAK_NO_PORTAL_GUI_CLOSING.getBooleanValue())
+        if (Configs.Disable.DISABLE_PORTAL_GUI_CLOSING.getBooleanValue())
         {
             return true;
         }
@@ -50,7 +50,7 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
     }
 
     @Inject(method = "livingTick", at = @At(value = "INVOKE", ordinal = 0, shift = At.Shift.AFTER,
-            target = "Lnet/minecraft/client/network/NetHandlerPlayClient;sendPacket(Lnet/minecraft/network/Packet;)V"))
+                target = "Lnet/minecraft/client/network/NetHandlerPlayClient;sendPacket(Lnet/minecraft/network/Packet;)V"))
     private void fixElytraDeployment(CallbackInfo ci)
     {
         if (Configs.Fixes.ELYTRA_FIX.getBooleanValue() && this.isInWater() == false)
@@ -60,7 +60,7 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
     }
 
     @Inject(method = "livingTick", at = @At(value = "FIELD",
-            target = "Lnet/minecraft/entity/player/PlayerCapabilities;allowFlying:Z", ordinal = 1))
+                target = "Lnet/minecraft/entity/player/PlayerCapabilities;allowFlying:Z", ordinal = 1))
     private void overrideSprint(CallbackInfo ci)
     {
         if (FeatureToggle.TWEAK_PERMANENT_SPRINT.getBooleanValue() &&
@@ -73,10 +73,10 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
     }
 
     @Redirect(method = "livingTick", at = @At(value = "FIELD",
-            target = "Lnet/minecraft/client/entity/EntityPlayerSP;collidedHorizontally:Z"))
+                target = "Lnet/minecraft/client/entity/EntityPlayerSP;collidedHorizontally:Z"))
     private boolean overrideCollidedHorizontally(EntityPlayerSP player)
     {
-        if (FeatureToggle.TWEAK_NO_WALL_UNSPRINT.getBooleanValue())
+        if (Configs.Disable.DISABLE_WALL_UNSPRINT.getBooleanValue())
         {
             return false;
         }
@@ -91,7 +91,7 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer
                      target = "Lnet/minecraft/client/entity/EntityPlayerSP;sprintToggleTimer:I"))
     private void disableDoubleTapSprint(CallbackInfo ci)
     {
-        if (FeatureToggle.TWEAK_NO_DOUBLE_TAP_SPRINT.getBooleanValue())
+        if (Configs.Disable.DISABLE_DOUBLE_TAP_SPRINT.getBooleanValue())
         {
             this.sprintToggleTimer = 0;
         }

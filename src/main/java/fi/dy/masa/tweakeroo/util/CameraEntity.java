@@ -39,8 +39,6 @@ public class CameraEntity extends EntityOtherPlayerMP
             Minecraft mc = Minecraft.getInstance();
             EntityPlayerSP player = mc.player;
 
-            camera.updateLastTickPosition();
-
             float forward = 0;
             float vertical = 0;
             float strafe = 0;
@@ -72,6 +70,8 @@ public class CameraEntity extends EntityOtherPlayerMP
             forward = player.isSprinting() ? forwardRamped * 2 : forwardRamped;
 
             camera.handleMotion(forward, verticalRamped, strafeRamped);
+
+            camera.updateLastTickPosition();
         }
     }
 
@@ -130,16 +130,29 @@ public class CameraEntity extends EntityOtherPlayerMP
         this.lastTickPosX = this.posX;
         this.lastTickPosY = this.posY;
         this.lastTickPosZ = this.posZ;
+
+        this.prevPosX = this.posX;
+        this.prevPosY = this.posY;
+        this.prevPosZ = this.posZ;
+
+        this.prevRotationYaw = this.rotationYaw;
+        this.prevRotationPitch = this.rotationPitch;
+
+        this.prevRotationYawHead = this.rotationYawHead;
     }
 
     public void setRotations(float yaw, float pitch)
     {
         this.rotationYaw = yaw;
         this.rotationPitch = pitch;
-        this.prevRotationYaw = this.rotationYaw;
-        this.prevRotationPitch = this.rotationPitch;
-        this.setRotationYawHead(this.rotationYaw);
-        this.setRenderYawOffset(this.rotationYaw);
+
+        this.rotationYawHead = this.rotationYaw;
+
+        //this.prevRotationYaw = this.rotationYaw;
+        //this.prevRotationPitch = this.rotationPitch;
+
+        //this.prevRotationYawHead = this.rotationYaw;
+        //this.setRenderYawOffset(this.rotationYaw);
     }
 
     private static CameraEntity create(Minecraft mc)
@@ -152,11 +165,7 @@ public class CameraEntity extends EntityOtherPlayerMP
         if (player != null)
         {
             camera.setLocationAndAngles(player.posX, player.posY, player.posZ, player.rotationYaw, player.rotationPitch);
-
-            camera.prevRotationYaw = camera.rotationYaw;
-            camera.prevRotationPitch = camera.rotationPitch;
-            camera.setRotationYawHead(camera.rotationYaw);
-            camera.setRenderYawOffset(camera.rotationYaw);
+            camera.setRotations(player.rotationYaw, player.rotationPitch);
         }
 
         return camera;

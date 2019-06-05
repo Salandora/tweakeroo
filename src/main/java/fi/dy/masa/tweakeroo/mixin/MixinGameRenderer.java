@@ -1,5 +1,6 @@
 package fi.dy.masa.tweakeroo.mixin;
 
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -7,21 +8,19 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import fi.dy.masa.tweakeroo.config.Callbacks;
 import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import fi.dy.masa.tweakeroo.config.Hotkeys;
-import fi.dy.masa.tweakeroo.renderer.RenderUtils;
 import fi.dy.masa.tweakeroo.util.CameraEntity;
 import fi.dy.masa.tweakeroo.util.MiscUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.entity.Entity;
-
-import java.util.List;
-import java.util.function.Predicate;
+import net.minecraft.entity.EntityLivingBase;
 
 @Mixin(GameRenderer.class)
 public abstract class MixinGameRenderer
@@ -32,6 +31,8 @@ public abstract class MixinGameRenderer
 
     @Nullable
     private Entity renderViewEntityOriginal;
+    private float realYaw;
+    private float realPitch;
 
     @Inject(method = "renderWorld(FJ)V", at = @At("HEAD"), cancellable = true)
     private void onRenderWorld(CallbackInfo ci)
@@ -58,7 +59,7 @@ public abstract class MixinGameRenderer
     @Inject(method = "renderRainSnow", at = @At("HEAD"), cancellable = true)
     private void cancelRainRender(float partialTicks, CallbackInfo ci)
     {
-        if (FeatureToggle.TWEAK_NO_RAIN_EFFECTS.getBooleanValue())
+        if (Configs.Disable.DISABLE_RAIN_EFFECTS.getBooleanValue())
         {
             ci.cancel();
         }
@@ -67,10 +68,35 @@ public abstract class MixinGameRenderer
     @Inject(method = "addRainParticles", at = @At("HEAD"), cancellable = true)
     private void cancelRainRender(CallbackInfo ci)
     {
-        if (FeatureToggle.TWEAK_NO_RAIN_EFFECTS.getBooleanValue())
+        if (Configs.Disable.DISABLE_RAIN_EFFECTS.getBooleanValue())
         {
             ci.cancel();
         }
+    }
+
+    @Redirect(method = "getMouseOver", at = @At(
+                value = "INVOKE",
+                target = "Ljava/util/function/Predicate;and(" +
+                         "Ljava/util/function/Predicate;)" +
+                         "Ljava/util/function/Predicate;"))
+    private Predicate<Entity> ignoreDeadEntities(Predicate<Entity> owner, Predicate<Entity> arg)
+    {
+        Predicate<Entity> combined = owner.and(arg);
+
+        if (Configs.Disable.DISABLE_DEAD_MOB_TARGETING.getBooleanValue())
+        {
+            combined = combined.and(new Predicate<Entity>()
+            {
+                @Override
+                public boolean test(Entity entity)
+                {
+                    return (entity instanceof EntityLivingBase) == false ||
+                            ((EntityLivingBase) entity).getHealth() > 0f;
+                }
+            });
+        }
+
+        return combined;
     }
 
     @Inject(method = "renderWorld(FJ)V", at = @At(
@@ -88,6 +114,17 @@ public abstract class MixinGameRenderer
                 this.mc.setRenderViewEntity(camera);
             }
         }
+        else if (FeatureToggle.TWEAK_ELYTRA_CAMERA.getBooleanValue() && Hotkeys.ELYTRA_CAMERA.getKeybind().isKeybindHeld())
+        {
+            Entity entity = this.mc.getRenderViewEntity();
+
+            if (entity != null)
+            {
+                this.realYaw = entity.rotationYaw;
+                this.realPitch = entity.rotationPitch;
+                MiscUtils.setEntityRotations(entity, MiscUtils.getCameraYaw(), MiscUtils.getCameraPitch());
+            }
+        }
     }
 
     @Inject(method = "renderWorld(FJ)V", at = @At("RETURN"))
@@ -97,6 +134,15 @@ public abstract class MixinGameRenderer
         {
             this.mc.setRenderViewEntity(this.renderViewEntityOriginal);
             this.renderViewEntityOriginal = null;
+        }
+        else if (FeatureToggle.TWEAK_ELYTRA_CAMERA.getBooleanValue() && Hotkeys.ELYTRA_CAMERA.getKeybind().isKeybindHeld())
+        {
+            Entity entity = this.mc.getRenderViewEntity();
+
+            if (entity != null)
+            {
+                MiscUtils.setEntityRotations(entity, this.realYaw, this.realPitch);
+            }
         }
     }
 
@@ -111,7 +157,9 @@ public abstract class MixinGameRenderer
 
     @Inject(method = "updateCameraAndRender(FJ)V", at = @At(
                 value = "INVOKE",
-                target = "Lnet/minecraft/client/renderer/WorldRenderer;setupTerrain(Lnet/minecraft/entity/Entity;FLnet/minecraft/client/renderer/culling/ICamera;IZ)V"))
+                target = "Lnet/minecraft/client/renderer/WorldRenderer;setupTerrain(" +
+                         "Lnet/minecraft/entity/Entity;" +
+                         "FLnet/minecraft/client/renderer/culling/ICamera;IZ)V"))
     private void preSetupTerrain(float partialTicks, long finishTimeNano, CallbackInfo ci)
     {
         MiscUtils.setFreeCameraSpectator(true);
@@ -119,7 +167,9 @@ public abstract class MixinGameRenderer
 
     @Inject(method = "updateCameraAndRender(FJ)V", at = @At(
                 value = "INVOKE", shift = At.Shift.AFTER,
-                target = "Lnet/minecraft/client/renderer/WorldRenderer;setupTerrain(Lnet/minecraft/entity/Entity;FLnet/minecraft/client/renderer/culling/ICamera;IZ)V"))
+                target = "Lnet/minecraft/client/renderer/WorldRenderer;setupTerrain(" +
+                         "Lnet/minecraft/entity/Entity;" +
+                         "FLnet/minecraft/client/renderer/culling/ICamera;IZ)V"))
     private void postSetupTerrain(float partialTicks, long finishTimeNano, CallbackInfo ci)
     {
         MiscUtils.setFreeCameraSpectator(false);

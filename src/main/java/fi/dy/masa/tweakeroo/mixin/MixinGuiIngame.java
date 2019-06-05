@@ -1,6 +1,5 @@
 package fi.dy.masa.tweakeroo.mixin;
 
-import net.minecraft.client.MainWindow;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,20 +27,12 @@ public abstract class MixinGuiIngame extends Gui
     private Minecraft mc;
 
     @Inject(method = "renderAttackIndicator", at = @At(value = "FIELD",
-            target = "Lnet/minecraft/client/GameSettings;showDebugInfo:Z", ordinal = 0), cancellable = true)
+                target = "Lnet/minecraft/client/GameSettings;showDebugInfo:Z", ordinal = 0), cancellable = true)
     private void overrideCursorRender(float partialTicks, CallbackInfo ci)
     {
         if (FeatureToggle.TWEAK_F3_CURSOR.getBooleanValue())
         {
-            RenderUtils.renderDirectionsCursor(mc.mainWindow, this.zLevel, partialTicks);
-            ci.cancel();
-        }
-    }
-
-    @Inject(method = "renderPumpkinOverlay", at = @At(value="HEAD"), cancellable = true)
-    private void overridePumpkinOverlay(CallbackInfo ci) {
-        if (FeatureToggle.TWEAK_NO_PUMPKIN_OVERLAY.getBooleanValue())
-        {
+            RenderUtils.renderDirectionsCursor(this.mc.mainWindow, this.zLevel, partialTicks);
             ci.cancel();
         }
     }
@@ -56,11 +47,9 @@ public abstract class MixinGuiIngame extends Gui
         {
             Scoreboard scoreboard = this.mc.world.getScoreboard();
             ScoreObjective objective = scoreboard.getObjectiveInDisplaySlot(0);
-            MainWindow win = this.mc.mainWindow;
-            int width = win.getScaledWidth();
 
             this.overlayPlayerList.setVisible(true);
-            this.overlayPlayerList.render(width, scoreboard, objective);
+            this.overlayPlayerList.render(this.mc.mainWindow.getScaledWidth(), scoreboard, objective);
         }
     }
 }

@@ -1,6 +1,6 @@
 package fi.dy.masa.tweakeroo.mixin;
 
-import net.minecraft.entity.EntityType;
+import fi.dy.masa.tweakeroo.config.Configs;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,6 +12,7 @@ import fi.dy.masa.tweakeroo.util.IEntityItem;
 import fi.dy.masa.tweakeroo.util.InventoryUtils;
 import net.minecraft.block.BlockShulkerBox;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -23,9 +24,9 @@ public abstract class MixinEntityItem extends Entity implements IEntityItem
     @Shadow private int age;
     @Shadow private int pickupDelay;
 
-    public MixinEntityItem(World worldIn)
+    public MixinEntityItem(EntityType<?> entityTypeIn, World worldIn)
     {
-        super(EntityType.ITEM, worldIn);
+        super(entityTypeIn, worldIn);
     }
 
     @Override
@@ -59,14 +60,16 @@ public abstract class MixinEntityItem extends Entity implements IEntityItem
             ItemStack stackSelf = self.getItem();
             ItemStack stackOther = other.getItem();
 
+            int maxStackSize = Configs.Generic.SHULKERBOX_STACKING.getIntegerValue();
+
             if (stackSelf.getItem() instanceof ItemBlock && ((ItemBlock) stackSelf.getItem()).getBlock() instanceof BlockShulkerBox &&
                 stackSelf.getItem() == stackOther.getItem() &&
                 fi.dy.masa.malilib.util.InventoryUtils.shulkerBoxHasItems(stackSelf) == false &&
                 // Only stack up to 64, and don't steal from other stacks that are larger
-                stackSelf.getCount() < 64 && stackSelf.getCount() >= stackOther.getCount() &&
+                stackSelf.getCount() < maxStackSize && stackSelf.getCount() >= stackOther.getCount() &&
                 ItemStack.areItemStackTagsEqual(stackSelf, stackOther))
             {
-                int amount = Math.min(stackOther.getCount(), 64 - stackSelf.getCount());
+                int amount = Math.min(stackOther.getCount(), maxStackSize - stackSelf.getCount());
                 stackSelf.grow(amount);
                 self.setItem(stackSelf);
                 this.pickupDelay = Math.max(((IEntityItem) other).getPickupDelay(), this.pickupDelay);

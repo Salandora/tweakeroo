@@ -4,11 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import net.minecraft.client.gui.GuiSlot;
-import net.minecraft.init.Biomes;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.registry.IRegistry;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,11 +14,13 @@ import fi.dy.masa.tweakeroo.config.Configs;
 import fi.dy.masa.tweakeroo.config.FeatureToggle;
 import fi.dy.masa.tweakeroo.tweaks.MiscTweaks;
 import net.minecraft.client.gui.GuiFlatPresets;
+import net.minecraft.init.Biomes;
 import net.minecraft.item.Item;
+import net.minecraft.util.IItemProvider;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.IRegistry;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.gen.FlatLayerInfo;
-import org.spongepowered.asm.mixin.transformer.meta.MixinInner;
 
 @Mixin(GuiFlatPresets.class)
 public abstract class MixinGuiFlatPresets
@@ -31,14 +28,12 @@ public abstract class MixinGuiFlatPresets
     // name;blocks;biome;options;iconitem
     private static final Pattern PATTERN_PRESET = Pattern.compile("^(?<name>[a-zA-Z0-9_ -]+);(?<blocks>[a-z0-9_:\\.\\*-]+);(?<biome>[a-z0-9_:]+);(?<options>[a-z0-9_, \\(\\)=]*);(?<icon>[a-z0-9_:-]+)$");
 
-    @Mixin(targets = "net.minecraft.client.gui.GuiFlatPresets$LayerItem")
-    static class LayerItem {}
-
     @Shadow
     @Final
-    private static List<LayerItem> FLAT_WORLD_PRESETS;
+    private static List<Object> FLAT_WORLD_PRESETS;
 
-    @Shadow protected abstract void addPreset(String p_199709_0_, IItemProvider itemIn, Biome biomeIn, List<String> options, FlatLayerInfo... layers);
+    @Shadow
+    private static void addPreset(String name, IItemProvider itemIn, Biome biomeIn, List<String> options, FlatLayerInfo... layers) {};
 
     @Inject(method = "initGui", at = @At("HEAD"))
     private void addCustomEntries(CallbackInfo ci)
@@ -61,7 +56,7 @@ public abstract class MixinGuiFlatPresets
 
                 if (this.registerPresetFromString(str) && FLAT_WORLD_PRESETS.size() > vanillaEntries)
                 {
-                    LayerItem o = FLAT_WORLD_PRESETS.remove(FLAT_WORLD_PRESETS.size() - 1);
+                    Object o = FLAT_WORLD_PRESETS.remove(FLAT_WORLD_PRESETS.size() - 1);
                     FLAT_WORLD_PRESETS.add(0, o);
                 }
             }
@@ -78,18 +73,24 @@ public abstract class MixinGuiFlatPresets
             String blocksString = matcher.group("blocks");
             String biomeName = matcher.group("biome");
             String options = matcher.group("options");
-            String iconString = matcher.group("icon");
+            String iconItemName = matcher.group("icon");
 
             Biome biome = null;
 
             try
             {
                 int biomeId = Integer.parseInt(biomeName);
-                biome = Biome.getBiome(biomeId, Biomes.THE_VOID);
+                biome = Biome.getBiome(biomeId, Biomes.PLAINS);
             }
             catch (Exception e)
             {
-                biome = IRegistry.BIOME.get(new ResourceLocation(biomeName));
+                try
+                {
+                    biome = IRegistry.BIOME.get(new ResourceLocation(biomeName));
+                }
+                catch (Exception e2)
+                {
+                }
             }
 
             if (biome == null)
@@ -98,29 +99,15 @@ public abstract class MixinGuiFlatPresets
             }
 
             List<String> features = Arrays.asList(options.split(","));
+            Item item = null;
 
-            int index = iconString.indexOf("@");
-            String iconItemName;
-
-            if (index != -1 && iconString.length() > index + 1)
+            try
             {
-                iconItemName = iconString.substring(0, index);
-
-                /*try
-                {
-                    meta = Integer.parseInt(iconString.substring(index + 1));
-                }
-                catch (Exception e)
-                {
-                    return false;
-                }*/
+                item = IRegistry.ITEM.get(new ResourceLocation(iconItemName));
             }
-            else
+            catch (Exception e)
             {
-                iconItemName = iconString;
             }
-
-            Item item = IRegistry.ITEM.get(new ResourceLocation(iconItemName));
 
             if (item == null)
             {
