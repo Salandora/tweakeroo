@@ -140,7 +140,14 @@ public class Configs implements IConfigHandler
                 SNAP_AIM_PITCH_STEP,
                 SNAP_AIM_YAW_STEP,
                 STRUCTURE_BLOCK_MAX_SIZE,
-                ZOOM_FOV
+                ZOOM_FOV,
+
+                SHULKERBOX_STACKING,
+                POTION_STACKING,
+                MINECART_STACKING,
+                FILLED_BUCKETS_STACKING,
+                MORE_EMPTY_BUCKETS,
+                MORE_ENDER_PEARLS
         );
     }
 
