@@ -31,8 +31,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceFluidMode;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.registry.IRegistry;
-import net.minecraft.util.text.ChatType;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 
 public class InventoryUtils
@@ -186,18 +184,19 @@ public class InventoryUtils
     {
         ItemStack stackHand = player.getHeldItem(hand);
 
-        if (stackHand.getCount() <= 4 && stackHand.getMaxStackSize() > 4 &&
+        if (stackHand.isEmpty() == false && stackHand.getCount() <= 4 && stackHand.getMaxStackSize() > 4 &&
             FeatureToggle.TWEAK_HAND_RESTOCK.getBooleanValue() && Configs.Generic.HAND_RESTOCK_PRE.getBooleanValue() &&
             player.openContainer == player.inventoryContainer && player.inventory.getItemStack().isEmpty())
         {
             Minecraft mc = Minecraft.getInstance();
             Container container = player.inventoryContainer;
             int endSlot = allowHotbar ? 44 : 35;
-            int currentHotbarSlot = player.inventory.currentItem + 36;
+            int currentMainHandSlot = player.inventory.currentItem + 36;
+            int currentSlot = hand == EnumHand.MAIN_HAND ? currentMainHandSlot : 45;
 
             for (int slotNum = 9; slotNum <= endSlot; ++slotNum)
             {
-                if (slotNum == currentHotbarSlot)
+                if (slotNum == currentMainHandSlot)
                 {
                     continue;
                 }
@@ -207,12 +206,12 @@ public class InventoryUtils
 
                 if (fi.dy.masa.malilib.util.InventoryUtils.areStacksEqualIgnoreDurability(stackSlot, stackHand))
                 {
-                    // If all the items from the found slot can fir into the current
+                    // If all the items from the found slot can fit into the current
                     // stack in hand, then left click, otherwise right click to split the stack
                     int button = stackSlot.getCount() + stackHand.getCount() <= stackHand.getMaxStackSize() ? 0 : 1;
 
                     mc.playerController.windowClick(container.windowId, slot.slotNumber, button, ClickType.PICKUP, player);
-                    mc.playerController.windowClick(container.windowId, currentHotbarSlot, 0, ClickType.PICKUP, player);
+                    mc.playerController.windowClick(container.windowId, currentSlot, 0, ClickType.PICKUP, player);
 
                     break;
                 }
@@ -258,7 +257,7 @@ public class InventoryUtils
                 Container container = player.inventoryContainer;
                 int slotNumber = findSlotWithEffectiveItemWithDurabilityLeft(container, state);
 
-                if (slotNumber != -1)
+                if (slotNumber != -1 && (slotNumber - 36) != player.inventory.currentItem)
                 {
                     swapItemToHand(player, EnumHand.MAIN_HAND, slotNumber);
                 }
@@ -287,13 +286,12 @@ public class InventoryUtils
 
     private static void swapItemWithHigherDurabilityToHand(EntityPlayer player, EnumHand hand, ItemStack stackReference, int minDurabilityLeft)
     {
-        Minecraft mc = Minecraft.getInstance();
         int slotWithItem = findSlotWithSuitableReplacementToolWithDurabilityLeft(player.inventoryContainer, stackReference, minDurabilityLeft);
 
         if (slotWithItem != -1)
         {
             swapItemToHand(player, hand, slotWithItem);
-            mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.swapped_low_durability_item_for_better_durability"));
+            InfoUtils.printActionbarMessage("tweakeroo.message.swapped_low_durability_item_for_better_durability");
             return;
         }
 
@@ -302,7 +300,7 @@ public class InventoryUtils
         if (slotWithItem != -1)
         {
             swapItemToHand(player, hand, slotWithItem);
-            mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.swapped_low_durability_item_off_players_hand"));
+            InfoUtils.printActionbarMessage("tweakeroo.message.swapped_low_durability_item_off_players_hand");
             return;
         }
 
@@ -327,7 +325,7 @@ public class InventoryUtils
         if (slotWithItem != -1)
         {
             swapItemToHand(player, hand, slotWithItem);
-            mc.ingameGUI.addChatMessage(ChatType.GAME_INFO, new TextComponentTranslation("tweakeroo.message.swapped_low_durability_item_for_dummy_item"));
+            InfoUtils.printActionbarMessage("tweakeroo.message.swapped_low_durability_item_for_dummy_item");
         }
     }
 

@@ -10,6 +10,7 @@ import fi.dy.masa.malilib.hotkeys.KeyAction;
 import fi.dy.masa.malilib.hotkeys.KeyCallbackAdjustable;
 import fi.dy.masa.malilib.interfaces.IValueChangeCallback;
 import fi.dy.masa.malilib.util.InfoUtils;
+import fi.dy.masa.malilib.util.StringUtils;
 import fi.dy.masa.tweakeroo.gui.GuiConfigs;
 import fi.dy.masa.tweakeroo.mixin.IMixinBlock;
 import fi.dy.masa.tweakeroo.util.CameraEntity;
@@ -19,9 +20,9 @@ import fi.dy.masa.tweakeroo.util.MiscUtils;
 import fi.dy.masa.tweakeroo.util.PlacementRestrictionMode;
 import fi.dy.masa.tweakeroo.util.SnapAimMode;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntitySign;
 import net.minecraft.util.math.BlockPos;
@@ -87,11 +88,11 @@ public class Callbacks
         FeatureToggle.TWEAK_SNAP_AIM.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_SNAP_AIM));
         FeatureToggle.TWEAK_ZOOM.getKeybind().setCallback(KeyCallbackAdjustableFeature.createCallback(FeatureToggle.TWEAK_ZOOM));
 
-        Configs.Generic.POTION_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "potion", "lingering_potion", "splash_potion" }));
-        Configs.Generic.MINECART_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "minecart", "chest_minecart", "furnace_minecart", "tnt_minecart", "hopper_minecart" }));
-        Configs.Generic.FILLED_BUCKETS_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "lava_bucket", "water_bucket" }));
-        Configs.Generic.MORE_EMPTY_BUCKETS.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "bucket" }));
-        Configs.Generic.MORE_ENDER_PEARLS.setValueChangeCallback(new ConfigSetMaxStackSize(new String[] { "ender_pearl" }));
+        Configs.Generic.POTION_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(Items.POTION, Items.LINGERING_POTION, Items.SPLASH_POTION));
+        Configs.Generic.MINECART_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(Items.MINECART, Items.CHEST_MINECART, Items.FURNACE_MINECART, Items.TNT_MINECART, Items.HOPPER_MINECART));
+        Configs.Generic.FILLED_BUCKETS_STACKING.setValueChangeCallback(new ConfigSetMaxStackSize(Items.LAVA_BUCKET, Items.WATER_BUCKET, Items.MILK_BUCKET, Items.COD_BUCKET, Items.PUFFERFISH_BUCKET, Items.SALMON_BUCKET, Items.TROPICAL_FISH_BUCKET));
+        Configs.Generic.MORE_EMPTY_BUCKETS.setValueChangeCallback(new ConfigSetMaxStackSize(Items.BUCKET));
+        Configs.Generic.MORE_ENDER_PEARLS.setValueChangeCallback(new ConfigSetMaxStackSize(Items.ENDER_PEARL));
     }
 
     public static class FeatureCallbackGamma implements IValueChangeCallback<IConfigBoolean>
@@ -206,8 +207,8 @@ public class Callbacks
                 this.mc.skipRenderWorld = ! this.mc.skipRenderWorld;
 
                 String pre = mc.skipRenderWorld ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-                String status = I18n.format("tweakeroo.message.value." + (this.mc.skipRenderWorld ? "on" : "off"));
-                String message = I18n.format("tweakeroo.message.toggled", "Skip All Rendering", pre + status + GuiBase.TXT_RST);
+                String status = StringUtils.translate("tweakeroo.message.value." + (this.mc.skipRenderWorld ? "on" : "off"));
+                String message = StringUtils.translate("tweakeroo.message.toggled", "Skip All Rendering", pre + status + GuiBase.TXT_RST);
                 InfoUtils.printActionbarMessage(message);
             }
             else if (key == Hotkeys.SKIP_WORLD_RENDERING.getKeybind())
@@ -216,8 +217,8 @@ public class Callbacks
 
                 boolean enabled = skipWorldRendering;
                 String pre = enabled ? GuiBase.TXT_GREEN : GuiBase.TXT_RED;
-                String status = I18n.format("tweakeroo.message.value." + (enabled ? "on" : "off"));
-                String message = I18n.format("tweakeroo.message.toggled", "Skip World Rendering", pre + status + GuiBase.TXT_RST);
+                String status = StringUtils.translate("tweakeroo.message.value." + (enabled ? "on" : "off"));
+                String message = StringUtils.translate("tweakeroo.message.toggled", "Skip World Rendering", pre + status + GuiBase.TXT_RST);
                 InfoUtils.printActionbarMessage(message);
             }
 
@@ -377,7 +378,7 @@ public class Callbacks
             }
             else if (key == Hotkeys.OPEN_CONFIG_GUI.getKeybind())
             {
-                this.mc.displayGuiScreen(new GuiConfigs());
+                GuiBase.openGui(new GuiConfigs());
                 return true;
             }
 
@@ -426,7 +427,7 @@ public class Callbacks
             this.feature.toggleBooleanValue();
 
             boolean enabled = this.feature.getBooleanValue();
-            String strStatus = I18n.format("tweakeroo.message.value." + (enabled ? "on" : "off"));
+            String strStatus = StringUtils.translate("tweakeroo.message.value." + (enabled ? "on" : "off"));
             String preGreen = GuiBase.TXT_GREEN;
             String preRed = GuiBase.TXT_RED;
             String rst = GuiBase.TXT_RST;
@@ -466,7 +467,7 @@ public class Callbacks
             this.config.toggleBooleanValue();
 
             boolean enabled = this.config.getBooleanValue();
-            String strStatus = I18n.format("tweakeroo.message.value." + (enabled ? "on" : "off"));
+            String strStatus = StringUtils.translate("tweakeroo.message.value." + (enabled ? "on" : "off"));
             String preGreen = GuiBase.TXT_GREEN;
             String preRed = GuiBase.TXT_RED;
             String rst = GuiBase.TXT_RST;
@@ -614,12 +615,8 @@ public class Callbacks
     {
         private final Item[] items;
 
-        public ConfigSetMaxStackSize(String[] item_ids) {
-            this.items = new Item[item_ids.length];
-            for (int i=0; i< item_ids.length; ++i)
-            {
-                this.items[i] = IRegistry.ITEM.get(new ResourceLocation(item_ids[i]));
-            }
+        public ConfigSetMaxStackSize(Item... items) {
+            this.items = items;
         }
 
         @Override
