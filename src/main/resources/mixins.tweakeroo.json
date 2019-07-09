@@ -56,7 +56,8 @@
         "MixinTileEntityStructure",
         "MixinWorld",
         "MixinWorldClient",
-        "MixinWorldRenderer"
+        "MixinWorldRenderer",
+        "MixinDimension"
     ],
     "injectors": {
         "defaultRequire": 1
