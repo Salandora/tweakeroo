@@ -51,8 +51,8 @@ public abstract class MixinItemBlock extends Item implements IItemStackLimit
     public int getMaxStackSize(ItemStack stack)
     {
         if (/*FeatureToggle.TWEAK_SHULKERBOX_STACKING.getBooleanValue() &&*/
-            ((ItemBlock) (Object) this).getBlock() instanceof BlockShulkerBox &&
-            InventoryUtils.shulkerBoxHasItems(stack) == false)
+            ((ItemBlock) (Object) this).getBlock() instanceof BlockShulkerBox /*&&
+            InventoryUtils.shulkerBoxHasItems(stack) == false*/)
         {
             return Configs.Generic.SHULKERBOX_STACKING.getIntegerValue();
         }
