@@ -2,6 +2,7 @@ package fi.dy.masa.tweakeroo.mixin;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import fi.dy.masa.malilib.util.InventoryUtils;
@@ -57,7 +58,6 @@ public abstract class MixinItemBlock extends Item implements IItemStackLimit
             return Configs.Generic.SHULKERBOX_STACKING.getIntegerValue();
         }
 
-        // FIXME How to call the stack-sensitive version on the super class?
-        return super.getMaxStackSize();
+        return IItemStackLimit.super.getMaxStackSize(stack);
     }
 }
