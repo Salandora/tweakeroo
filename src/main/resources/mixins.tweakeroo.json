@@ -54,6 +54,7 @@
         "MixinTileEntityRendererDispatcher",
         "MixinTileEntitySign",
         "MixinTileEntityStructure",
+        "MixinTileEntityHopper",
         "MixinWorld",
         "MixinWorldClient",
         "MixinWorldRenderer",
